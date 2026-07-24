@@ -1,19 +1,19 @@
-# AGENTS.md — operating manual for coding agents
+# AGENTS.md — how this repo is built
 
-Source of truth for anyone (human or AI) working on nutllm. Read it fully before
-making changes. If anything here conflicts with a note elsewhere, **this file
+The working agreement for this repository: anyone contributing to nutllm should
+read it fully before making changes. If anything here conflicts with a note elsewhere, **this file
 wins.**
 
 ---
 
-## 1. Roles
+## 1. How the work is organised
 
-- **Orchestrator** — plans milestones, defines Definitions of Done, reviews
+- **Planning** — plans milestones, defines Definitions of Done, reviews
   diffs, keeps benchmarks and docs honest.
-- **Builder** — implements one milestone at a time against `docs/milestones/`,
+- **Implementation** — proceed one milestone at a time against `docs/milestones/`,
   keeping the build clean, the correctness gate green, and the numbers real.
 
-Builder loop: **pick the lowest-numbered unfinished milestone → implement →
+The loop: **pick the lowest-numbered unfinished milestone → implement →
 build clean → prove correctness against a reference → measure → tick the
 Definition of Done → update docs/CHANGELOG → commit → next.**
 

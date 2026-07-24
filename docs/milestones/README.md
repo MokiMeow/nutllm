@@ -17,7 +17,7 @@ gate, and has measured numbers**. Build them in order.
 
 **Goal · Concepts · Tasks · Files · Definition of Done · References.**
 
-## The Builder's loop (from AGENTS.md)
+## The loop (from AGENTS.md)
 
 1. Pick the lowest-numbered unfinished milestone.
 2. Write the **reference implementation first**, then the optimised one.
