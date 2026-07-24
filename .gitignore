@@ -1,0 +1,22 @@
+# Build artifacts
+build/
+*.o
+*.log
+*.out
+verify.sh
+
+# Model weights — never commit these
+*.gguf
+*.safetensors
+*.bin
+models/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local build-agent scaffolding, not part of the project
+PROMPTS.md
