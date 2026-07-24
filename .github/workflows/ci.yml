@@ -1,0 +1,29 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    # nutllm uses x86-64 AVX2/FMA intrinsics, so the runner must be x86-64.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y g++ make
+
+      - name: Build (portable flags; warnings are failures)
+        run: |
+          make clean
+          make all ARCH="-mavx2 -mfma" 2>&1 | tee build.log
+          ! grep -qi warning build.log
+
+      - name: Correctness gate (every kernel vs the reference)
+        run: make test
+
+      - name: Benchmark (informational — runner speed is not a gate)
+        run: make run
