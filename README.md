@@ -67,14 +67,15 @@ make bench   # 1024x1024
 
 ## Status
 
-Milestones 0 and 1 (compute core and tensor ops) are **done and tested**. The road to running a
+Milestones 0 through 2 (compute, tensor ops, transformer, and tokenizer) are
+**done and tested**. The road to running a
 real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
 
 | # | Milestone | State |
 |---|-----------|-------|
 | 0 | Compute core: matmul kernels + benchmark | ✅ done |
 | 1 | Tensor ops: softmax, RMSNorm, SwiGLU, RoPE | ✅ done |
-| 2 | Transformer block + tokenizer (BPE) | ⬜ |
+| 2 | Transformer block + tokenizer (BPE) | ✅ done |
 | 3 | Load real weights (GGUF/safetensors) and generate text | ⬜ |
 | 4 | KV cache + incremental decoding | ⬜ |
 | 5 | INT8/INT4 quantisation | ⬜ |

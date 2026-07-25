@@ -7,6 +7,12 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Milestone 2: validated model configuration, row-major multi-head causal
+  attention, pre-normalized decoder blocks, deterministic layer stacks, and a
+  byte-level BPE tokenizer with hex-encoded vocabulary/merge files.
+- Transformer proofs covering a checked-in identity-attention fixture,
+  future-token perturbation (causal mask), two-layer optimized/reference
+  agreement, finite deterministic output, and lossless ASCII/UTF-8 tokenization.
 - Milestone 1: stable row-wise softmax, RMSNorm, SiLU/SwiGLU, RoPE for query
   and key, residual add, and a decode-shaped matvec path, each kept beside a
   scalar/double-precision reference.

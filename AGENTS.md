@@ -80,7 +80,7 @@ Specs with Definitions of Done live in `docs/milestones/`.
 |---|-----------|------|------|
 | 0 | Compute core | Matrix, 3 matmul kernels, correctness + benchmark | [spec](docs/milestones/milestone-0-compute-core.md) ✅ |
 | 1 | Tensor ops ✅ | softmax, RMSNorm, SwiGLU, RoPE, all reference-tested | [spec](docs/milestones/milestone-1-tensor-ops.md) |
-| 2 | Transformer | attention block, BPE tokenizer, forward pass | [spec](docs/milestones/milestone-2-transformer.md) |
+| 2 | Transformer ✅ | attention block, BPE tokenizer, forward pass | [spec](docs/milestones/milestone-2-transformer.md) |
 | 3 | Real weights | GGUF/safetensors loader, generate text from a real model | [spec](docs/milestones/milestone-3-weights.md) |
 | 4 | KV cache | incremental decoding, prefill vs decode | [spec](docs/milestones/milestone-4-kv-cache.md) |
 | 5 | Quantisation | INT8/INT4 blocked quant, dequant-in-kernel | [spec](docs/milestones/milestone-5-quantisation.md) |
