@@ -16,7 +16,8 @@ void ModelConfig::validate() const {
     if (layers == 0 || heads == 0 || dim == 0 || head_dim == 0 ||
         ffn_dim == 0 || vocab_size == 0 || max_seq == 0 ||
         heads > std::numeric_limits<size_t>::max() / head_dim ||
-        heads * head_dim != dim || head_dim % 2 != 0)
+        heads * head_dim != dim || head_dim % 2 != 0 ||
+        eos_token >= vocab_size)
         throw std::invalid_argument("model config: invalid dimensions");
 }
 

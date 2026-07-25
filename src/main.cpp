@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "cli.hpp"
 #include "matmul.hpp"
 #include "selftest.hpp"
 
@@ -118,6 +119,9 @@ void run_benchmark(size_t n) {
 } // namespace
 
 int main(int argc, char **argv) {
+    if (argc > 1 && std::string(argv[1]) == "--model")
+        return run_model_cli(argc, argv);
+
     size_t n = 512;
     if (argc > 1)
         n = static_cast<size_t>(std::strtoul(argv[1], nullptr, 10));
@@ -126,11 +130,11 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    std::printf("nutllm milestone 0 — compute core (AVX2/FMA: %s)\n\n",
+    std::printf("nutllm correctness gate (AVX2/FMA: %s)\n\n",
                 simd_available() ? "yes" : "no");
 
     if (!run_correctness() || !run_ops_selftests() ||
-        !run_transformer_selftests()) {
+        !run_transformer_selftests() || !run_loader_selftests()) {
         std::fprintf(stderr, "\nFAIL: a kernel disagrees with the reference\n");
         return 1;
     }

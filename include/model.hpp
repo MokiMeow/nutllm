@@ -13,6 +13,7 @@ struct ModelConfig {
     size_t ffn_dim = 0;
     size_t vocab_size = 0;
     size_t max_seq = 0;
+    size_t eos_token = 0;
 
     void validate() const;
 };
