@@ -67,8 +67,9 @@ make bench   # 1024x1024
 
 ## Status
 
-Milestones 0 through 2 (compute, tensor ops, transformer, and tokenizer) are
-**done and tested**. The road to running a
+Milestones 0 through 2 are complete. Milestone 3's memory-mapped loader,
+generation loop, sampling, CLI, and tiny-checkpoint CI proof are complete; a
+stock open-model adapter and coherent-text validation remain. The road to a
 real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
 
 | # | Milestone | State |
@@ -76,7 +77,7 @@ real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
 | 0 | Compute core: matmul kernels + benchmark | ✅ done |
 | 1 | Tensor ops: softmax, RMSNorm, SwiGLU, RoPE | ✅ done |
 | 2 | Transformer block + tokenizer (BPE) | ✅ done |
-| 3 | Load real weights (GGUF/safetensors) and generate text | ⬜ |
+| 3 | Safetensors + generation; stock-model validation | 🟡 partial |
 | 4 | KV cache + incremental decoding | ⬜ |
 | 5 | INT8/INT4 quantisation | ⬜ |
 | 6 | Threading, benchmarks vs llama.cpp, `v1.0.0` | ⬜ |
@@ -91,6 +92,9 @@ sudo apt-get install -y g++ make   # one time
 make run                           # verify + benchmark
 make test                          # correctness gate (what CI runs)
 ./build/nutllm 1024                # benchmark a chosen size
+./build/nutllm --model tests/fixtures/tiny.safetensors \
+  --vocab tests/fixtures/tiny.vocab --merges tests/fixtures/tiny.merges \
+  --prompt H --max-tokens 8        # prints Hi!
 ```
 
 Requires x86-64 with AVX2 + FMA (any CPU since ~2013). Without them the SIMD
