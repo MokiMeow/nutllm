@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "generate.hpp"
+#include "kvcache.hpp"
 #include "ops.hpp"
 
 namespace {
@@ -115,6 +116,37 @@ std::vector<int> generate_tokens(const ModelWeights &model,
             break;
         generated.push_back(int(token));
         context.push_back(int(token));
+    }
+    return generated;
+}
+
+std::vector<int> generate_tokens_cached(const ModelWeights &model,
+                                        const std::vector<int> &prompt,
+                                        const SamplingConfig &sampling) {
+    model.config.validate();
+    if (prompt.empty() || prompt.size() > model.config.max_seq)
+        throw std::invalid_argument("generation: invalid prompt length");
+
+    KVCache cache(model.config);
+    Matrix hidden = prefill_tokens(model, prompt, cache);
+    std::vector<float> last(model.config.dim);
+    std::memcpy(last.data(),
+                hidden.data() + (hidden.rows() - 1) * model.config.dim,
+                model.config.dim * sizeof(float));
+    std::vector<float> normalized(model.config.dim);
+    std::vector<float> logits(model.config.vocab_size);
+    std::vector<int> generated;
+    std::mt19937 rng(sampling.seed);
+    while (generated.size() < sampling.max_tokens &&
+           cache.length() < cache.capacity()) {
+        rmsnorm(last.data(), model.final_norm.data(), normalized.data(),
+                model.config.dim, 1e-5f);
+        matvec(model.lm_head, normalized.data(), logits.data());
+        const size_t token = choose_token(logits, sampling, rng);
+        if (token == model.config.eos_token)
+            break;
+        generated.push_back(int(token));
+        last = decode_token(model, int(token), cache);
     }
     return generated;
 }

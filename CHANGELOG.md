@@ -7,6 +7,12 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Milestone 4: a fully preallocated `[layer][head][position][head_dim]` KV
+  cache, matrix-shaped prompt prefill, streaming incremental decode, absolute
+  RoPE position tracking, and cached generation as the CLI default.
+- Randomized hidden-state and four-prompt token-ID differential tests against
+  full-prefix recomputation, exact cache-size validation, and separate measured
+  prefill/decode reporting across context lengths.
 - Milestone 3 engine path: a read-only memory-mapped F32 safetensors parser,
   strict tensor/config validation, conventional Llama weight-name mapping and
   explicit layout transposition, autoregressive generation, deterministic

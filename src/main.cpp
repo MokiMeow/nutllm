@@ -134,11 +134,13 @@ int main(int argc, char **argv) {
                 simd_available() ? "yes" : "no");
 
     if (!run_correctness() || !run_ops_selftests() ||
-        !run_transformer_selftests() || !run_loader_selftests()) {
+        !run_transformer_selftests() || !run_loader_selftests() ||
+        !run_kvcache_selftests()) {
         std::fprintf(stderr, "\nFAIL: a kernel disagrees with the reference\n");
         return 1;
     }
 
+    run_kvcache_benchmark();
     run_benchmark(n);
     return 0;
 }
