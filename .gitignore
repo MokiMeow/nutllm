@@ -8,6 +8,7 @@ verify.sh
 # Model weights — never commit these
 *.gguf
 *.safetensors
+!tests/fixtures/tiny.safetensors
 *.bin
 models/
 
