@@ -6,7 +6,7 @@ gate, and has measured numbers**. Build them in order.
 | # | Milestone | State |
 |---|-----------|-------|
 | 0 | [Compute core](milestone-0-compute-core.md) | ✅ done |
-| 1 | [Tensor ops](milestone-1-tensor-ops.md) | ⬜ |
+| 1 | [Tensor ops](milestone-1-tensor-ops.md) | ✅ done |
 | 2 | [Transformer + tokenizer](milestone-2-transformer.md) | ⬜ |
 | 3 | [Real weights](milestone-3-weights.md) | ⬜ |
 | 4 | [KV cache](milestone-4-kv-cache.md) | ⬜ |

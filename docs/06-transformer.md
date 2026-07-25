@@ -87,3 +87,12 @@ Build each op with a reference version and test it in isolation before
 composing. Then test the whole block against known-good outputs (e.g. compare a
 single layer's output against a PyTorch dump for the same weights — used as a
 *test fixture*, not a runtime dependency).
+
+## Implemented tensor-op contract
+
+`include/ops.hpp` exposes the permanent reference and optimised paths for
+softmax, RMSNorm, SwiGLU, RoPE, residual addition, and matrix-vector multiply.
+The correctness gate compares vector-width edges at 7, 8, 9, 33, and 64
+elements with tolerance `2e-5`. Softmax always subtracts the row maximum, RoPE
+requires an even dimension and rotates Q and K together, and dependency-free
+scalar fallbacks keep the build portable when AVX2 is unavailable.

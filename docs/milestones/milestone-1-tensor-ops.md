@@ -11,19 +11,19 @@ compute-bound.
 
 ## Tasks
 
-- [ ] **`softmax`** (row-wise): subtract the row max before `exp` — without it
+- [x] **`softmax`** (row-wise): subtract the row max before `exp` — without it
       fp32 overflows to `inf` above ~88 and you get NaNs. Reference + SIMD.
-- [ ] **`rmsnorm`**: `x / sqrt(mean(x²) + eps) * weight`. Note the reduction
+- [x] **`rmsnorm`**: `x / sqrt(mean(x²) + eps) * weight`. Note the reduction
       then the scale; two passes, or one with a fused accumulator.
-- [ ] **`silu` / `swiglu`**: `silu(z) = z * sigmoid(z)`;
+- [x] **`silu` / `swiglu`**: `silu(z) = z * sigmoid(z)`;
       `swiglu(x) = silu(x·W1) * (x·W3)`.
-- [ ] **`rope`**: rotate pairs of dimensions in Q and K by a
+- [x] **`rope`**: rotate pairs of dimensions in Q and K by a
       position-dependent angle. Applied to Q and K only, **never V**.
-- [ ] **`add` / residual**, and a `matvec` path (matrix × vector) — decode's
+- [x] **`add` / residual**, and a `matvec` path (matrix × vector) — decode's
       shape, and bandwidth-bound, so optimise it differently from GEMM.
-- [ ] Extend the correctness harness: each op vs its reference, at sizes that
+- [x] Extend the correctness harness: each op vs its reference, at sizes that
       exercise vector-width edges (7, 8, 9, 33, 64).
-- [ ] Add a numerical-stability test: softmax of large logits (e.g. 1000) must
+- [x] Add a numerical-stability test: softmax of large logits (e.g. 1000) must
       not produce NaN.
 
 ## Files
@@ -33,11 +33,11 @@ compute-bound.
 
 ## Definition of Done
 
-- [ ] Every op matches its reference within a stated tolerance at all test sizes.
-- [ ] `softmax` of large values is finite and sums to 1.
-- [ ] `rmsnorm`, `swiglu`, `rope` verified against hand-computed values on a
+- [x] Every op matches its reference within a stated tolerance at all test sizes.
+- [x] `softmax` of large values is finite and sums to 1.
+- [x] `rmsnorm`, `swiglu`, `rope` verified against hand-computed values on a
       tiny case (a fixture checked into the repo).
-- [ ] `make all` warning-free; `make test` green.
+- [x] `make all` warning-free; `make test` green.
 
 ## Notes
 
