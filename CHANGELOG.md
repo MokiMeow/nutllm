@@ -7,6 +7,12 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Milestone 1: stable row-wise softmax, RMSNorm, SiLU/SwiGLU, RoPE for query
+  and key, residual add, and a decode-shaped matvec path, each kept beside a
+  scalar/double-precision reference.
+- Correctness fixtures at vector-width edges (7, 8, 9, 33, 64), large-logit
+  softmax stability, and hand-computed RMSNorm, SwiGLU, RoPE, and residual
+  checks, verified with and without AVX2.
 - Milestone 0: the compute core — an aligned, move-only `Matrix`, and three
   matmul kernels (naive, cache-blocked, and a register-blocked AVX2+FMA
   micro-kernel holding a 4×16 output tile in 8 YMM accumulators), with scalar

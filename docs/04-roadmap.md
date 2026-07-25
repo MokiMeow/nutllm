@@ -8,7 +8,7 @@ publishes tokens/sec."
 | # | Milestone | You'll build | You'll learn |
 |---|-----------|--------------|--------------|
 | 0 | **Compute core** ✅ | Matrix + 3 matmul kernels + benchmark | cache blocking, FMA, register blocking, why memory dominates |
-| 1 | **Tensor ops** | softmax, RMSNorm, SwiGLU, RoPE | numerical stability, fused ops, reference testing |
+| 1 | **Tensor ops** ✅ | softmax, RMSNorm, SwiGLU, RoPE, residual, matvec | numerical stability, fused ops, reference testing |
 | 2 | **Transformer** | attention block, BPE tokenizer, forward pass | Q/K/V, causal masking, multi-head layout |
 | 3 | **Real weights** | GGUF/safetensors loader → generate text | file formats, mmap, tensor layouts |
 | 4 | **KV cache** | incremental decoding | prefill vs decode; why generation is bandwidth-bound |

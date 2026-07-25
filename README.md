@@ -67,13 +67,13 @@ make bench   # 1024x1024
 
 ## Status
 
-Milestone 0 (the compute core) is **done and measured**. The road to running a
+Milestones 0 and 1 (compute core and tensor ops) are **done and tested**. The road to running a
 real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
 
 | # | Milestone | State |
 |---|-----------|-------|
 | 0 | Compute core: matmul kernels + benchmark | ✅ done |
-| 1 | Tensor ops: softmax, RMSNorm, SwiGLU, RoPE | ⬜ |
+| 1 | Tensor ops: softmax, RMSNorm, SwiGLU, RoPE | ✅ done |
 | 2 | Transformer block + tokenizer (BPE) | ⬜ |
 | 3 | Load real weights (GGUF/safetensors) and generate text | ⬜ |
 | 4 | KV cache + incremental decoding | ⬜ |
@@ -99,8 +99,8 @@ kernel falls back to the blocked version and says so.
 
 ```
 nutllm/
-├── src/          # matmul kernels, benchmark driver
-├── include/      # Matrix, kernel declarations
+├── src/          # matmul/tensor kernels, self-tests, benchmark driver
+├── include/      # Matrix and kernel declarations
 ├── docs/         # kernels, transformer, KV cache, quantisation, roadmap
 └── Makefile      # all / run / test / bench / clean
 ```
