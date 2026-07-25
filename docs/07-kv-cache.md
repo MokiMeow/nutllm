@@ -47,6 +47,10 @@ decode barely at all. Optimise each phase for its own bottleneck.
 bytes = 2 (K and V) × layers × heads × head_dim × max_seq × sizeof(elem)
 ```
 
+The implementation stores `[layer][head][position][head_dim]`, so one head's
+history is contiguous during attention. It allocates the full capacity once
+and never moves it during generation.
+
 This grows linearly with context length and is often larger than the model
 itself at long context. Mitigations (stretch goals): quantise the cache to INT8,
 grouped-query attention (share K/V across heads), or a sliding window.
@@ -55,8 +59,33 @@ grouped-query attention (share K/V across heads), or a sliding window.
 
 - **Preallocate** the cache for `max_seq` at load time; growing it mid-generation
   means reallocation and copying in the hot path.
-- **Layout matters**: store K as `[head][seq][dim]` so the attention matmul
+- **Layout matters**: store K as `[layer][head][seq][head_dim]` so attention
   reads contiguously along the sequence axis.
 - **Correctness test**: generating with the cache must produce *identical*
   tokens to generating without it (recomputing every step). Any divergence is a
   cache bug — this differential test is the milestone's Definition of Done.
+
+## Measured result
+
+Median of three runs on a 13th Gen Intel Core i7-13650HX under WSL2, one
+thread, `-O3 -march=native`, using a deterministic synthetic one-layer model
+(`dim=64`, four heads, FFN 128):
+
+| context | prefill tokens/s | incremental decode µs/token |
+|---:|---:|---:|
+| 16 | 200,652 | 5.9 |
+| 64 | 131,621 | 11.4 |
+| 128 | 92,037 | 18.2 |
+
+An eightfold context increase makes incremental decode about 3.1× slower,
+rather than re-running an increasingly large full transformer prefix. The
+remaining linear rise is the required attention scan over cached history;
+per-token decode is O(context), not constant-time. Prefill and decode are
+reported separately because they exercise different kernel shapes.
+
+For this benchmark's configured capacity the cache reports 131,072 bytes,
+exactly:
+
+```
+2 × 1 layer × 4 heads × 16 head_dim × 256 positions × 4 bytes
+```

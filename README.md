@@ -78,7 +78,7 @@ real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
 | 1 | Tensor ops: softmax, RMSNorm, SwiGLU, RoPE | ✅ done |
 | 2 | Transformer block + tokenizer (BPE) | ✅ done |
 | 3 | Safetensors + generation; stock-model validation | 🟡 partial |
-| 4 | KV cache + incremental decoding | ⬜ |
+| 4 | KV cache + incremental decoding | ✅ done |
 | 5 | INT8/INT4 quantisation | ⬜ |
 | 6 | Threading, benchmarks vs llama.cpp, `v1.0.0` | ⬜ |
 
