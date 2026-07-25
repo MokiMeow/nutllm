@@ -19,13 +19,18 @@ small blocks (32 or 64 weights), each with its own scale:
 
 ```
 for each block of 32 weights:
-    scale = max(|w|) / 7          # INT4 signed range is [-8, 7]
-    q[i]  = round(w[i] / scale)   # stored in 4 bits
+    scale = max(|w|) / 7          # emitted symmetric range is [-7, 7]
+    q[i]  = clamp(round(w[i] / scale), -7, 7)
 store: 32 × 4-bit values + one fp16 scale
 ```
 
 Effective bits per weight = 4 + 16/32 = **4.5**, and accuracy stays close to
 fp32 because outliers only affect their own block.
+
+INT4 uses signed two's-complement nibbles. Flattened even-indexed weights occupy
+the **low nibble** and odd-indexed weights occupy the **high nibble**. The
+quantiser emits `[-7, 7]`; `0x8` (−8) is accepted by the decoder but never
+created. For example `[-7, -1, 2, 7]` packs as bytes `f9 72`.
 
 ## Dequantising inside the kernel
 
@@ -75,3 +80,25 @@ a perplexity table is meaningless.
   projection are sensitive; llama.cpp does the same.
 - Store the nibble packing order explicitly in the docs; it is the most common
   source of "why is my output garbage."
+
+## Current measured kernel proof
+
+The checked-in deterministic test uses 185 weights (block size 32), including
+an odd final nibble and block boundaries:
+
+| format | stored bytes | effective bits/weight | synthetic perplexity |
+|---|---:|---:|---:|
+| fp32 | 740 | 32.00 | 11.598 |
+| INT8 + fp16 scales | 197 | 8.52 | 11.608 |
+| INT4 + fp16 scales | 105 | 4.54 | 11.715 |
+
+The synthetic perplexity sample is only a numerical regression fixture, not a
+language-model quality claim. Round-trip worst-error/bound ratios were 0.879
+(INT8) and 0.993 (INT4); quantized-matmul ratios were 0.726 and 0.756. A ratio
+below 1 proves every observed error stayed inside the bound derived from
+rounding and fp16 scale storage.
+
+Stock-model quantized generation, real-text perplexity, and decode tokens/sec
+remain pending with the stock-model adapter from milestone 3. Embeddings and
+the language-model output head therefore remain fp32 by policy; only projection
+matrices should be routed through this quantized kernel when that adapter lands.

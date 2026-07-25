@@ -7,6 +7,12 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Milestone 5 kernel layer: blocked symmetric INT8/INT4 quantisation with fp16
+  scales, explicit low-nibble-first signed INT4 packing, in-loop dequantized
+  matvec/matmul, and a stable perplexity calculator.
+- Theoretically bounded round-trip and matmul differential tests across odd
+  dimensions and block boundaries, byte-exact packing checks, storage accounting,
+  and a deterministic fp32/INT8/INT4 synthetic perplexity comparison.
 - Milestone 4: a fully preallocated `[layer][head][position][head_dim]` KV
   cache, matrix-shaped prompt prefill, streaming incremental decode, absolute
   RoPE position tracking, and cached generation as the CLI default.
