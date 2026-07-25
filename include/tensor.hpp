@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <new>
+#include <limits>
 #include <stdexcept>
 
 /* A dense row-major 2-D float matrix with aligned storage.
@@ -15,8 +16,13 @@ public:
     Matrix(size_t rows, size_t cols) : rows_(rows), cols_(cols) {
         if (rows == 0 || cols == 0)
             throw std::invalid_argument("Matrix: zero dimension");
+        if (rows > std::numeric_limits<size_t>::max() / cols ||
+            rows * cols > std::numeric_limits<size_t>::max() / sizeof(float))
+            throw std::length_error("Matrix: dimensions overflow");
         /* Round the byte count up to the alignment, as aligned_alloc requires. */
         const size_t bytes = rows * cols * sizeof(float);
+        if (bytes > std::numeric_limits<size_t>::max() - (kAlign - 1))
+            throw std::length_error("Matrix: allocation size overflow");
         const size_t padded = ((bytes + kAlign - 1) / kAlign) * kAlign;
         data_ = static_cast<float *>(std::aligned_alloc(kAlign, padded));
         if (data_ == nullptr)
@@ -32,6 +38,18 @@ public:
         : data_(other.data_), rows_(other.rows_), cols_(other.cols_) {
         other.data_ = nullptr;
         other.rows_ = other.cols_ = 0;
+    }
+
+    Matrix &operator=(Matrix &&other) noexcept {
+        if (this != &other) {
+            std::free(data_);
+            data_ = other.data_;
+            rows_ = other.rows_;
+            cols_ = other.cols_;
+            other.data_ = nullptr;
+            other.rows_ = other.cols_ = 0;
+        }
+        return *this;
     }
 
     float *data() { return data_; }

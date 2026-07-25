@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "matmul.hpp"
+#include "selftest.hpp"
 
 namespace {
 
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
     std::printf("nutllm milestone 0 — compute core (AVX2/FMA: %s)\n\n",
                 simd_available() ? "yes" : "no");
 
-    if (!run_correctness()) {
+    if (!run_correctness() || !run_ops_selftests()) {
         std::fprintf(stderr, "\nFAIL: a kernel disagrees with the reference\n");
         return 1;
     }
