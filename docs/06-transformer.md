@@ -88,6 +88,24 @@ composing. Then test the whole block against known-good outputs (e.g. compare a
 single layer's output against a PyTorch dump for the same weights — used as a
 *test fixture*, not a runtime dependency).
 
+## Implemented layout and block
+
+The in-memory layout is row-major `[batch=1][sequence][head][head_dim]`; the
+documented logical view `[batch][head][sequence][head_dim]` is obtained by
+strides, without copying into per-head matrices. Q, K, and V projections have
+shape `[sequence, dim]`. RoPE is applied independently to every head's Q/K
+slice, scores above the causal diagonal become negative infinity before
+softmax, and V is never rotated.
+
+`decoder_block` implements pre-normalized attention plus a pre-normalized
+SwiGLU feed-forward residual. Its optimized two-layer output agrees with the
+permanent reference within `2e-5`; changing the last input row leaves every
+earlier attention row bit-identical.
+
+The tokenizer begins from raw bytes, so decoding is lossless for arbitrary
+UTF-8. Vocabulary and merge files use hex-encoded byte strings, which also
+represents whitespace and NUL unambiguously.
+
 ## Implemented tensor-op contract
 
 `include/ops.hpp` exposes the permanent reference and optimised paths for
