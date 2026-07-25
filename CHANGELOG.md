@@ -7,6 +7,9 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Milestone 6 engineering pass: dependency-free row-parallel GEMM and matvec
+  kernels, awkward-row/thread-count correctness coverage, reproducible scaling
+  tables with efficiency, a warning-as-error build, and a checked-in CLI demo.
 - Milestone 5 kernel layer: blocked symmetric INT8/INT4 quantisation with fp16
   scales, explicit low-nibble-first signed INT4 packing, in-loop dequantized
   matvec/matmul, and a stable perplexity calculator.

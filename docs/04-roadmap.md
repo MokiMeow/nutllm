@@ -13,7 +13,7 @@ publishes tokens/sec."
 | 3 | **Real weights** 🟡 | safetensors loader + deterministic tiny generation; stock-model adapters pending | file formats, mmap, tensor layouts |
 | 4 | **KV cache** ✅ | incremental decoding | prefill vs decode; why generation is bandwidth-bound |
 | 5 | **Quantisation** 🟡 | INT8/INT4 kernels proven; real-model proof pending | accuracy/size trade-offs, dequant inside the kernel |
-| 6 | **Polish** | threading, tokens/sec vs llama.cpp, CI, `v1.0.0` | honest benchmarking, presentation |
+| 6 | **Polish** 🟡 | threading/CI/presentation done; reference benchmark and release pending | honest benchmarking, presentation |
 
 ## Dependency order
 

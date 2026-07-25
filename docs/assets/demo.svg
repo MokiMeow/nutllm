@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="250"
+     viewBox="0 0 920 250" role="img"
+     aria-label="nutllm loading its tiny checkpoint and generating Hi!">
+  <rect width="920" height="250" rx="12" fill="#0d1117"/>
+  <style>
+    @keyframes reveal { to { opacity: 1; } }
+    @keyframes blink { 50% { opacity: 0; } }
+    .line { opacity: 0; animation: reveal .15s ease-out forwards; }
+    .l1 { animation-delay: .2s; }
+    .l2 { animation-delay: .6s; }
+    .l3 { animation-delay: 1s; }
+    .l4 { animation-delay: 1.5s; }
+    .l5 { animation-delay: 1.9s; }
+    .l6 { animation-delay: 2.3s; }
+    .cursor { animation: blink .8s step-end infinite; }
+  </style>
+  <circle cx="24" cy="22" r="6" fill="#ff5f56"/>
+  <circle cx="44" cy="22" r="6" fill="#ffbd2e"/>
+  <circle cx="64" cy="22" r="6" fill="#27c93f"/>
+  <g font-family="ui-monospace, SFMono-Regular, Consolas, monospace"
+     font-size="17">
+    <text class="line l1" x="22" y="62" fill="#8b949e">$ ./build/nutllm --model tests/fixtures/tiny.safetensors \</text>
+    <text class="line l2" x="42" y="90" fill="#8b949e">--vocab tests/fixtures/tiny.vocab --merges tests/fixtures/tiny.merges \</text>
+    <text class="line l3" x="42" y="118" fill="#8b949e">--prompt H --max-tokens 8</text>
+    <text class="line l4" x="22" y="158" fill="#7ee787">Hi!<tspan class="cursor">▋</tspan></text>
+    <text class="line l5" x="22" y="202" fill="#58a6ff">mmap → tokenize → prefill → KV decode → EOS</text>
+    <text class="line l6" x="22" y="230" fill="#8b949e">deterministic • dependency-free • CI-gated</text>
+  </g>
+</svg>

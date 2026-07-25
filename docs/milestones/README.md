@@ -11,7 +11,7 @@ gate, and has measured numbers**. Build them in order.
 | 3 | [Real weights](milestone-3-weights.md) | 🟡 engine/CI done; stock model pending |
 | 4 | [KV cache](milestone-4-kv-cache.md) | ✅ |
 | 5 | [Quantisation](milestone-5-quantisation.md) | 🟡 kernels done; real-model proof pending |
-| 6 | [Polish](milestone-6-polish.md) | ⬜ |
+| 6 | [Polish](milestone-6-polish.md) | 🟡 engineering pass done; release proof pending |
 
 ## Every milestone spec has
 
