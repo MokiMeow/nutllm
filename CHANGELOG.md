@@ -7,6 +7,13 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Milestone 3 engine path: a read-only memory-mapped F32 safetensors parser,
+  strict tensor/config validation, conventional Llama weight-name mapping and
+  explicit layout transposition, autoregressive generation, deterministic
+  greedy and seeded temperature/top-p sampling, and a model CLI.
+- A reproducible two-layer synthetic checkpoint and byte-BPE fixture that
+  generates `Hi!`, plus CI coverage for regeneration, malformed-file rejection,
+  and command-line generation without downloads.
 - Milestone 2: validated model configuration, row-major multi-head causal
   attention, pre-normalized decoder blocks, deterministic layer stacks, and a
   byte-level BPE tokenizer with hex-encoded vocabulary/merge files.
