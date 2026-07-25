@@ -13,6 +13,11 @@
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT">
 </p>
 
+<p align="center">
+  <img src="docs/assets/demo.svg"
+       alt="nutllm loads the tiny checkpoint and generates Hi!">
+</p>
+
 ---
 
 ## What this is
@@ -80,10 +85,30 @@ real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
 | 3 | Safetensors + generation; stock-model validation | 🟡 partial |
 | 4 | KV cache + incremental decoding | ✅ done |
 | 5 | INT8/INT4 kernels; real-model proof | 🟡 partial |
-| 6 | Threading, benchmarks vs llama.cpp, `v1.0.0` | ⬜ |
+| 6 | Threading/CI/presentation; llama.cpp release proof | 🟡 partial |
 
 The endgame: **run a real open-weights model and publish tokens/sec** against
 llama.cpp on the same machine.
+
+## Where the time goes
+
+Prompt prefill is matrix×matrix and compute-bound, so cache blocking, SIMD, and
+row threading pay off. Incremental decode is matrix×vector plus a linear scan
+of cached attention history; it streams weights and becomes bandwidth-bound.
+That is why the project reports these phases separately and why INT4 storage is
+useful even though unpacking adds arithmetic.
+
+On the current 4-vCPU WSL2 environment, the row-parallel kernels measured:
+
+| threads | 768³ GEMM | speedup | efficiency | 4096² matvec | speedup |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 27.51 ms | 1.00× | 100.0% | 10.22 ms | 1.00× |
+| 2 | 13.49 ms | 2.04× | 102.0% | 5.19 ms | 1.97× |
+| 4 | 9.15 ms | 3.01× | 75.2% | 2.60 ms | 3.93× |
+
+Median timings, `-O3 -march=native`, 13th Gen Intel Core i7-13650HX exposed
+through WSL2. The unusually strong four-thread matvec result is reported as
+measured, not generalized into a real-model decode claim.
 
 ## Quick start
 

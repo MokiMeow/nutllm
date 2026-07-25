@@ -22,3 +22,8 @@ void matmul_simd(const Matrix &a, const Matrix &b, Matrix &c);
 
 /* True when this build actually has AVX2/FMA compiled in. */
 bool simd_available();
+
+void matmul_threaded(const Matrix &a, const Matrix &b, Matrix &c,
+                     size_t thread_count);
+void matvec_threaded(const Matrix &matrix, const float *vector, float *output,
+                     size_t thread_count);

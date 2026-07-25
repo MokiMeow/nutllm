@@ -62,3 +62,18 @@ objdump -d build/matmul.o | grep -c vfmadd
 - **M5**: quantised-vs-fp32 differential tests plus a perplexity table.
 - **M6**: tokens/sec vs llama.cpp, same model, same quantisation, same machine —
   and report it even if we lose.
+
+## Milestone 6 thread scaling
+
+Median local results on the 4-vCPU WSL2 environment (13th Gen Intel Core
+i7-13650HX, `-O3 -march=native`):
+
+| threads | 768³ GEMM ms | speedup | efficiency | 4096² matvec ms | speedup |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 27.51 | 1.00× | 100.0% | 10.22 | 1.00× |
+| 2 | 13.49 | 2.04× | 102.0% | 5.19 | 1.97× |
+| 4 | 9.15 | 3.01× | 75.2% | 2.60 | 3.93× |
+
+The >100% two-thread GEMM efficiency is normal measurement/turbo variation,
+not superlinear algorithmic scaling. These are standalone kernel results. They
+are not substituted for the still-pending same-model llama.cpp comparison.

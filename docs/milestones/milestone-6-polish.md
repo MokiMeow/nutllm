@@ -6,7 +6,7 @@ that impresses on sight. Tag `v1.0.0`.
 ## Tasks
 
 ### Performance
-- [ ] **Threading**: parallelise GEMM by splitting the output rows across
+- [x] **Threading**: parallelise GEMM by splitting the output rows across
       threads (`std::thread`, no OpenMP dependency). Measure scaling on 2/4/N
       cores and report the efficiency, not just the speedup.
 - [ ] **Thread the decode path** too, and confirm it scales worse than prefill —
@@ -16,9 +16,9 @@ that impresses on sight. Tag `v1.0.0`.
       helps at your sizes.
 
 ### Proof
-- [ ] Full test suite: kernels, ops, tokenizer round-trip, causal mask,
+- [x] Full test suite: kernels, ops, tokenizer round-trip, causal mask,
       KV-cache differential, quantisation round-trip.
-- [ ] CI: build warning-free, run the correctness gate and the tiny-checkpoint
+- [x] CI: build warning-free, run the correctness gate and the tiny-checkpoint
       generation test. Do **not** download models in CI.
 
 ### The headline benchmark
@@ -34,8 +34,8 @@ that impresses on sight. Tag `v1.0.0`.
       threading) is more impressive than a fake win.
 
 ### Presentation
-- [ ] An asciinema/GIF of the engine generating text at the top of the README.
-- [ ] A short "where the time goes" section: prefill vs decode, and the
+- [x] An asciinema/GIF of the engine generating text at the top of the README.
+- [x] A short "where the time goes" section: prefill vs decode, and the
       kernel-optimisation ladder from milestone 0.
 
 ### Hygiene
@@ -49,6 +49,12 @@ that impresses on sight. Tag `v1.0.0`.
       tokens/sec, compared against llama.cpp.
 - [ ] CI green; README opens with the demo and the numbers.
 - [ ] `v1.0.0` tagged.
+
+Implementation status: row-parallel GEMM/matvec, full local/CI correctness
+coverage, measured scaling, and presentation are complete. Full-model decode
+integration, the same-model llama.cpp comparison, and `v1.0.0` remain open
+behind milestone 3's stock-model adapter. The project deliberately does not
+convert standalone kernel timings into a release claim.
 
 ## Stretch goals (after v1.0.0)
 

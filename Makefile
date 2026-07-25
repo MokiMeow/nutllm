@@ -8,7 +8,7 @@
 
 CXX   := g++
 ARCH  ?= -march=native
-CXXFLAGS := -std=c++17 -O3 -Wall -Wextra $(ARCH) -Iinclude
+CXXFLAGS := -std=c++17 -O3 -Wall -Wextra -Werror -pthread $(ARCH) -Iinclude
 
 BUILD := build
 BIN   := $(BUILD)/nutllm
