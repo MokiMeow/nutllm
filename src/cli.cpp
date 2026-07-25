@@ -99,7 +99,7 @@ int run_model_cli(int argc, char **argv) {
                 "tokenizer vocabulary does not match model");
         const std::vector<int> prompt_tokens = tokenizer.encode(prompt);
         const std::vector<int> generated =
-            generate_tokens(model, prompt_tokens, sampling);
+            generate_tokens_cached(model, prompt_tokens, sampling);
         std::vector<int> complete = prompt_tokens;
         complete.insert(complete.end(), generated.begin(), generated.end());
         std::printf("%s\n", tokenizer.decode(complete).c_str());

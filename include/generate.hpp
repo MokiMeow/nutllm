@@ -16,3 +16,6 @@ struct SamplingConfig {
 std::vector<int> generate_tokens(const ModelWeights &model,
                                  const std::vector<int> &prompt,
                                  const SamplingConfig &sampling);
+std::vector<int> generate_tokens_cached(const ModelWeights &model,
+                                        const std::vector<int> &prompt,
+                                        const SamplingConfig &sampling);
