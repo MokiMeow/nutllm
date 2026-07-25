@@ -12,7 +12,7 @@ publishes tokens/sec."
 | 2 | **Transformer** ✅ | attention block, byte-level BPE tokenizer, forward pass | Q/K/V, causal masking, multi-head layout |
 | 3 | **Real weights** 🟡 | safetensors loader + deterministic tiny generation; stock-model adapters pending | file formats, mmap, tensor layouts |
 | 4 | **KV cache** ✅ | incremental decoding | prefill vs decode; why generation is bandwidth-bound |
-| 5 | **Quantisation** | INT8/INT4 blocked quant | accuracy/size trade-offs, dequant inside the kernel |
+| 5 | **Quantisation** 🟡 | INT8/INT4 kernels proven; real-model proof pending | accuracy/size trade-offs, dequant inside the kernel |
 | 6 | **Polish** | threading, tokens/sec vs llama.cpp, CI, `v1.0.0` | honest benchmarking, presentation |
 
 ## Dependency order

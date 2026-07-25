@@ -10,21 +10,21 @@ and measuring accuracy loss with perplexity.
 
 ## Tasks
 
-- [ ] **Quantiser**: per-block (32 or 64 weights) symmetric scales.
+- [x] **Quantiser**: per-block (32 or 64 weights) symmetric scales.
       INT8: `scale = max|w| / 127`. INT4: `scale = max|w| / 7`, two weights
       packed per byte. Store the fp16 scale alongside each block.
-- [ ] **Document the packing order explicitly** (which nibble is which weight) —
+- [x] **Document the packing order explicitly** (which nibble is which weight) —
       it is the most common source of "the output is garbage."
-- [ ] **Dequant-in-kernel matmul**: unpack and scale **inside** the inner loop,
+- [x] **Dequant-in-kernel matmul**: unpack and scale **inside** the inner loop,
       in registers. Dequantising a whole matrix to fp32 in memory first would
       read *more* bytes than fp32 and defeat the entire purpose.
 - [ ] **Keep sensitive tensors higher precision** (embeddings, output
       projection) — standard practice, and cheap.
-- [ ] **Round-trip test**: quantise → dequantise; max error within the block's
+- [x] **Round-trip test**: quantise → dequantise; max error within the block's
       theoretical bound.
-- [ ] **Differential test**: quantised matmul vs the fp32 reference, with a
+- [x] **Differential test**: quantised matmul vs the fp32 reference, with a
       tolerance *derived from* the quantisation error, not an arbitrary constant.
-- [ ] **Perplexity harness**: measure perplexity on a fixed text sample for
+- [x] **Perplexity harness**: measure perplexity on a fixed text sample for
       fp32 / INT8 / INT4 on the same model.
 
 ## Files
@@ -42,8 +42,14 @@ and measuring accuracy loss with perplexity.
 
 - [ ] Decode tokens/sec improves roughly in proportion to the reduction in
       weight bytes (the bandwidth hypothesis, confirmed by measurement).
-- [ ] Round-trip and differential tests pass.
-- [ ] `make all` warning-free; `make test` green.
+- [x] Round-trip and differential tests pass.
+- [x] `make all` warning-free; `make test` green.
+
+Implementation status: the quantized storage, kernels, derived-bound tests, and
+synthetic perplexity harness are complete. End-to-end quantized language-model
+generation and real-text speed/quality numbers remain open behind milestone
+3's stock-model adapter. See [docs/08](../08-quantisation.md); no model-quality
+or proportional-speed claim is made from the synthetic fixture.
 
 ## Notes
 
