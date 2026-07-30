@@ -1,4 +1,4 @@
-# 02 — Architecture
+# 02: Architecture
 
 nutllm is layered so that each level depends only on the level beneath it, and
 each level has a reference implementation that defines "correct."
@@ -24,7 +24,7 @@ each level has a reference implementation that defines "correct."
 
 | File | Role |
 |------|------|
-| `include/tensor.hpp` | `Matrix` — row-major, 64-byte aligned, move-only |
+| `include/tensor.hpp` | `Matrix`: row-major, 64-byte aligned, move-only |
 | `include/matmul.hpp` | fp32 kernels and the persistent row-worker executor |
 | `include/llama2.hpp` | llama2.c checkpoint/tokenizer adapter |
 | `include/kvcache.hpp` | preallocated GQA-aware KV cache |
@@ -40,7 +40,7 @@ multiple of AVX2's 32) avoids split-line penalties on every vector access.
 Copying is deleted, moving is allowed: accidentally copying a weight matrix is a
 performance bug, so the type makes it impossible.
 
-**Reference implementations are permanent.** `matmul_naive` is not scaffolding —
+**Reference implementations are permanent.** `matmul_naive` is not scaffolding;
 it is the oracle every future kernel is checked against, and it stays in the
 codebase forever.
 
@@ -54,12 +54,12 @@ scalar fallback, so the project builds and runs anywhere and degrades honestly.
 ## How the layers grew
 
 - **M1** added elementwise/reduction ops (softmax, RMSNorm, SwiGLU, RoPE), each
-  with a reference and a test — same discipline as matmul.
+  with a reference and a test: same discipline as matmul.
 - **M2** composed them into an attention block; attention is itself three
   matmuls plus a softmax, so it sits directly on M0.
 - **M3** added safetensors and llama2.c loaders plus the sampling loop.
 - **M4** added the KV cache, which changes decode from "matmul" to
-  "matrix-vector" — bandwidth-bound, a different optimisation problem
+  "matrix-vector": bandwidth-bound, a different optimisation problem
   ([docs/07](07-kv-cache.md)).
 - **M5** replaced projection weights with INT8/INT4 blocks, dequantised inside the
   kernel so the memory traffic actually drops

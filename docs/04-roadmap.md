@@ -1,4 +1,4 @@
-# 04 — Roadmap
+# 04: Roadmap
 
 From "a matmul at 144 GFLOP/s" to a real 1.1B language model with published,
 reproducible tokens/sec.
@@ -27,7 +27,7 @@ is only measurable against an unquantised baseline.
 
 ## Definition of Done (whole project)
 
-nutllm loads a real open-weights model (a small one — 1B–3B parameters is
+nutllm loads a real open-weights model (a small one: 1B–3B parameters is
 plenty), generates coherent text from a prompt, and publishes a **measured**
 tokens/sec comparison against llama.cpp on the same machine, with the model,
 quantisation level, thread count, and CPU stated.
@@ -46,7 +46,7 @@ and explanation of the 2.60× decode gap are in
 
 ## Stretch goals (after v1.0.0)
 
-- **CUDA backend** — port the micro-kernel to a GPU; the natural next tier, and
+- **CUDA backend**: port the micro-kernel to a GPU; the natural next tier, and
   where the free Colab/Kaggle GPUs come in.
 - Flash-attention-style fused attention (tiling to avoid materialising the
   full attention matrix).

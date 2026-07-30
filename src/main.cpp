@@ -107,6 +107,7 @@ void run_benchmark(size_t n) {
     const double t_naive = best_seconds(matmul_naive, a, b, c, naive_runs);
     const double t_blocked = best_seconds(matmul_blocked, a, b, c, fast_runs);
     const double t_simd = best_seconds(matmul_simd, a, b, c, fast_runs);
+    const double t_packed = best_seconds(matmul_packed, a, b, c, fast_runs);
 
     std::printf("\nbenchmark  %zux%zu x %zux%zu  (best of %d/%d runs)\n",
                 n, n, n, n, naive_runs, fast_runs);
@@ -117,6 +118,8 @@ void run_benchmark(size_t n) {
                 t_blocked * 1e3, gflops(n, t_blocked), t_naive / t_blocked);
     std::printf("  %-10s %9.2f %9.2f %7.1fx\n", simd_available() ? "simd" : "simd*",
                 t_simd * 1e3, gflops(n, t_simd), t_naive / t_simd);
+    std::printf("  %-10s %9.2f %9.2f %7.1fx\n", "packed",
+                t_packed * 1e3, gflops(n, t_packed), t_naive / t_packed);
     if (!simd_available())
         std::printf("  * built without AVX2/FMA; simd fell back to blocked\n");
 }

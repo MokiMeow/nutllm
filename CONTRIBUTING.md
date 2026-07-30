@@ -5,7 +5,7 @@ welcome.
 
 ## Before you start
 
-- Read [AGENTS.md](AGENTS.md) — the operating manual, which applies to humans
+- Read [AGENTS.md](AGENTS.md): the operating manual, which applies to humans
   too.
 - Skim [docs/00-overview.md](docs/00-overview.md), the
   [roadmap](docs/04-roadmap.md), and [docs/05-kernels.md](docs/05-kernels.md).
@@ -40,10 +40,10 @@ Example: `perf(kernels): hold the output tile in ymm accumulators`.
 ## Code style
 
 See §4 of [AGENTS.md](AGENTS.md). C++17, 4-space indent, `snake_case` functions,
-`PascalCase` types. Comment *why* — which cache level a tile targets, what
+`PascalCase` types. Comment *why* a tile targets a cache level and what
 register pressure a micro-kernel has.
 
 ## Reporting issues
 
-Include your CPU, the output of `make run`, and — for a correctness failure —
-the sizes and diffs printed by the harness.
+Include your CPU and the output of `make run`. For a correctness failure,
+include the sizes and differences printed by the harness.

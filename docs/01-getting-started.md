@@ -1,4 +1,4 @@
-# 01 — Getting started
+# 01: Getting started
 
 ## Requirements
 
@@ -14,7 +14,7 @@ AVX2 + FMA (any CPU since roughly 2013) unlocks the fast kernel. Check:
 grep -m1 -o avx2 /proc/cpuinfo && grep -m1 -o fma /proc/cpuinfo
 ```
 
-Without them the build still works — the SIMD kernel falls back to the blocked
+Without them the build still works: the SIMD kernel falls back to the blocked
 one and the output says so.
 
 ## Build and run
@@ -26,7 +26,7 @@ make run
 Runs the correctness checks, then the benchmark:
 
 ```
-nutllm milestone 0 — compute core (AVX2/FMA: yes)
+nutllm milestone 0: compute core (AVX2/FMA: yes)
 
 correctness (each kernel vs the naive reference)
   ok   n=1    blocked_diff=0.00e+00 simd_diff=0.00e+00
@@ -38,7 +38,7 @@ benchmark  512x512 x 512x512  (best of 3/5 runs)
   simd            1.86    144.23    48.4x
 ```
 
-Your numbers will differ — they depend on your CPU. Always quote your own.
+Your numbers will differ: they depend on your CPU. Always quote your own.
 
 ## Targets
 
@@ -64,7 +64,7 @@ make ARCH="-mavx2 -mfma"
 ## Reading the benchmark honestly
 
 - It is **single-threaded**; multi-core comes in milestone 6.
-- It reports the **best of N runs**, which minimises scheduler noise — say so
+- It reports the **best of N runs**, which minimises scheduler noise: say so
   whenever you quote it.
 - GFLOP/s = `2·N³ / seconds`: one multiply and one add per inner iteration.
 - Compare against your CPU's theoretical peak
@@ -72,9 +72,9 @@ make ARCH="-mavx2 -mfma"
 
 ## Troubleshooting
 
-- **`FAIL` in the correctness output** — a kernel disagrees with the reference.
+- **`FAIL` in the correctness output**: a kernel disagrees with the reference.
   Fix that before looking at any timing.
-- **SIGILL** — a binary built with `-march=native` run on a different CPU.
+- **SIGILL**: a binary built with `-march=native` run on a different CPU.
   Rebuild portable.
-- **Suspiciously high GFLOP/s** — the compiler may have optimised the work away
+- **Suspiciously high GFLOP/s**: the compiler may have optimised the work away
   (results unused). The correctness check reading the output prevents this here.

@@ -1,4 +1,4 @@
-# 09 — Testing & benchmarking
+# 09: Testing & benchmarking
 
 Numerical code fails quietly: a wrong kernel returns plausible numbers rather
 than crashing. These are the practices that catch it.
@@ -6,7 +6,7 @@ than crashing. These are the practices that catch it.
 ## The correctness gate
 
 `make test` runs every kernel against the naive reference at sizes
-**1, 7, 8, 9, 64, 96** — deliberately including non-multiples of the vector
+**1, 7, 8, 9, 64, 96**: deliberately including non-multiples of the vector
 width (8) and the micro-kernel tile (4×16), because **edge handling is where
 SIMD kernels break**. A kernel that is right at 64 and wrong at 9 has a tail-loop
 bug.
@@ -24,8 +24,8 @@ Rules:
 
 The rules this project holds itself to:
 
-1. **State the conditions** — size, run count, thread count, compiler flags, CPU.
-2. **Best of N**, not a single run — minimises scheduler and frequency noise.
+1. **State the conditions**: size, run count, thread count, compiler flags, CPU.
+2. **Best of N**, not a single run: minimises scheduler and frequency noise.
 3. **Use the result.** If nothing reads the output matrix, the compiler may
    delete the work entirely and report absurd GFLOP/s. Here the correctness pass
    consumes it.
@@ -55,12 +55,12 @@ objdump -d build/matmul.o | grep -c vfmadd
 ## Later milestones
 
 - **M2/M3**: compare a single transformer layer against a reference dump
-  (e.g. from PyTorch) used as a static test fixture — never as a runtime
+  (e.g. from PyTorch) used as a static test fixture: never as a runtime
   dependency.
 - **M4**: generation with the KV cache must produce byte-identical tokens to
   generation without it.
 - **M5**: quantised-vs-fp32 differential tests plus a perplexity table.
-- **M6**: tokens/sec vs llama.cpp, same model, same quantisation, same machine —
+- **M6**: tokens/sec vs llama.cpp, same model, same quantisation, same machine,
   and report it even if we lose.
 
 ## Milestone 6 thread scaling
@@ -76,6 +76,21 @@ i7-13650HX, `-O3 -march=native`):
 
 The >100% two-thread GEMM efficiency is normal measurement/turbo variation,
 not superlinear algorithmic scaling. These are standalone kernel results.
+
+## Packed-panel experiment
+
+The optional `matmul_packed` path copies bounded A and B panels into reusable
+thread-local buffers, then executes an AVX2/FMA inner loop. It passes the same
+tail-heavy correctness sizes as every other kernel.
+
+| size | blocked GFLOP/s | SIMD GFLOP/s | packed GFLOP/s |
+|---:|---:|---:|---:|
+| 512³ | 55.50 | 142.73 | 40.67 |
+| 1024³ | 49.01 | 121.59 | 53.22 |
+
+Packing did not beat the existing register-blocked SIMD kernel. The production
+path therefore remains unchanged, while the completed experiment documents why
+copying panels alone is insufficient.
 
 ## TinyLlama release benchmark
 
@@ -104,7 +119,7 @@ smaller end-to-end format, persistent/finer-grained scheduling, packed kernels,
 and years of architecture-specific tuning.
 
 This is a same model family/generation, 4-bit class, thread count, token count,
-and machine comparison—not a byte-identical quantization comparison. nutllm's
+and machine comparison, not a byte-identical quantization comparison. nutllm's
 policy keeps two large sensitive tensors fp32, while llama.cpp Q4_0 stores a
 606.54 MiB mixed-format GGUF. That size difference is part of the result.
 

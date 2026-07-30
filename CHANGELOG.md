@@ -6,7 +6,19 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.0.0] — 2026-07-30
+### Added
+
+- An independently testable packed-panel GEMM experiment with reusable
+  thread-local A/B scratch panels and AVX2/FMA plus scalar tail handling.
+
+### Changed
+
+- Recorded the negative packing result at 512 and 1024 and retained the faster
+  register-blocked SIMD production kernel.
+- Expanded the README with architecture, requirements, limitations, and a
+  complete documentation map.
+
+## [1.0.0]: 2026-07-30
 
 ### Added
 - Real llama2.c checkpoint/tokenizer support with grouped-query attention,
@@ -53,7 +65,7 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Correctness fixtures at vector-width edges (7, 8, 9, 33, 64), large-logit
   softmax stability, and hand-computed RMSNorm, SwiGLU, RoPE, and residual
   checks, verified with and without AVX2.
-- Milestone 0: the compute core — an aligned, move-only `Matrix`, and three
+- Milestone 0: the compute core: an aligned, move-only `Matrix`, and three
   matmul kernels (naive, cache-blocked, and a register-blocked AVX2+FMA
   micro-kernel holding a 4×16 output tile in 8 YMM accumulators), with scalar
   fallbacks and `__AVX2__`/`__FMA__` guards.
@@ -68,5 +80,5 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   testing/benchmarking, glossary), 3 ADRs, 7 milestone specs, and the
   `AGENTS.md` operating manual.
 
-## [0.1.0] — milestone 0
+## [0.1.0]: milestone 0
 - First working version: a correctness-gated, benchmarked matmul compute core.

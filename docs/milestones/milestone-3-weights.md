@@ -1,4 +1,4 @@
-# Milestone 3 — Real weights, real text
+# Milestone 3: Real weights, real text
 
 **Goal:** load a real open-weights model from disk and generate coherent text.
 This is the milestone where nutllm becomes a working LLM engine.
@@ -10,10 +10,10 @@ naming and layout conventions, and sampling.
 
 ## Tasks
 
-- [x] **Loader**: parse a real format — **safetensors** is the simpler start
+- [x] **Loader**: parse a real format: **safetensors** is the simpler start
       (JSON header + raw tensor blob); GGUF is the llama.cpp-compatible option
       and worth it if you want to reuse existing quantised files.
-- [x] **`mmap` the file** and point tensors at it rather than copying — a
+- [x] **`mmap` the file** and point tensors at it rather than copying: a
       multi-GB model should not be read into a second buffer.
 - [x] **Map names to the model**: build a table from the file's tensor names
       (`model.layers.0.self_attn.q_proj.weight`, …) to the internal structures;
@@ -22,8 +22,8 @@ naming and layout conventions, and sampling.
       hard-coded constants.
 - [x] **Generation loop**: prompt → tokenize → forward → logits → sample →
       append → repeat until EOS or a length limit.
-- [x] **Sampling**: greedy (argmax) first — it is deterministic and therefore
-      testable — then temperature and top-p.
+- [x] **Sampling**: greedy (argmax) first: it is deterministic and therefore
+      testable: then temperature and top-p.
 - [x] **CLI**: `nutllm --model <path> --prompt "..." --max-tokens N`.
 - [x] **Tiny synthetic checkpoint** for CI: a 2-layer, tiny-dim model written by
       a script, so the loader and generation path are tested without downloading
@@ -58,6 +58,6 @@ the reproduction command are recorded in
 Incoherent output almost always means a **layout** bug, not a math bug: a
 transposed weight, wrong head stride, or an off-by-one in RoPE positions. Debug
 by comparing intermediate tensors against a reference dump for the same weights,
-layer by layer, until they diverge — the first divergent layer is the bug.
+layer by layer, until they diverge: the first divergent layer is the bug.
 
-**Next:** [Milestone 4 — KV cache](milestone-4-kv-cache.md).
+**Next:** [Milestone 4: KV cache](milestone-4-kv-cache.md).

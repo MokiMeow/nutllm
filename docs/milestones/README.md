@@ -21,7 +21,7 @@ gate, and has measured numbers**. Build them in order.
 
 1. Pick the lowest-numbered unfinished milestone.
 2. Write the **reference implementation first**, then the optimised one.
-3. Verify against the reference (`make test`) — *before* timing anything.
+3. Verify against the reference (`make test`): *before* timing anything.
 4. Measure, and record the conditions (size, runs, threads, CPU).
 5. Update the doc, tick the DoD, update README/CHANGELOG/roadmap.
 6. Commit (`type(scope): …`), keep CI green.
@@ -29,5 +29,5 @@ gate, and has measured numbers**. Build them in order.
 ## The rule that matters most
 
 **Correctness before speed.** A kernel that is fast and subtly wrong is worse
-than no kernel — every layer above it inherits the error, and the symptom
+than no kernel: every layer above it inherits the error, and the symptom
 (slightly wrong text) is nearly impossible to trace back down.

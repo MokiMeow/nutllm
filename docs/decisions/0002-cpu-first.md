@@ -1,4 +1,4 @@
-# ADR 0002 — CPU first, GPU as a later tier
+# ADR 0002: CPU first, GPU as a later tier
 
 **Status:** accepted · **Date:** 2026
 
@@ -23,13 +23,13 @@ stretch goal** after `v1.0.0`.
 - The concepts transfer directly: register blocking on CPU is shared-memory
   tiling on GPU; both are about keeping the working set close to the ALUs.
 - llama.cpp took exactly this path (CPU first, GPU backends later) and it is the
-  most-used local inference engine in the world — evidence the ordering is sound.
+  most-used local inference engine in the world: evidence the ordering is sound.
 - Free GPU access (Colab, Kaggle) exists for the stretch goal without cost or a
   credit card, so the GPU tier is not blocked, merely sequenced.
 
 ## Consequences
 
-- The headline benchmark is CPU tokens/sec vs llama.cpp CPU — a fair,
+- The headline benchmark is CPU tokens/sec vs llama.cpp CPU: a fair,
   reproducible comparison.
 - Kernels are written behind a narrow interface (`matmul.hpp`) so a CUDA
   implementation is an additional backend, not a rewrite.

@@ -1,4 +1,4 @@
-# Milestone 1 — Tensor ops
+# Milestone 1: Tensor ops
 
 **Goal:** the non-matmul operations a transformer needs, each with a reference
 implementation and a test.
@@ -11,7 +11,7 @@ compute-bound.
 
 ## Tasks
 
-- [x] **`softmax`** (row-wise): subtract the row max before `exp` — without it
+- [x] **`softmax`** (row-wise): subtract the row max before `exp`: without it
       fp32 overflows to `inf` above ~88 and you get NaNs. Reference + SIMD.
 - [x] **`rmsnorm`**: `x / sqrt(mean(x²) + eps) * weight`. Note the reduction
       then the scale; two passes, or one with a fused accumulator.
@@ -19,7 +19,7 @@ compute-bound.
       `swiglu(x) = silu(x·W1) * (x·W3)`.
 - [x] **`rope`**: rotate pairs of dimensions in Q and K by a
       position-dependent angle. Applied to Q and K only, **never V**.
-- [x] **`add` / residual**, and a `matvec` path (matrix × vector) — decode's
+- [x] **`add` / residual**, and a `matvec` path (matrix × vector): decode's
       shape, and bandwidth-bound, so optimise it differently from GEMM.
 - [x] Extend the correctness harness: each op vs its reference, at sizes that
       exercise vector-width edges (7, 8, 9, 33, 64).
@@ -42,7 +42,7 @@ compute-bound.
 ## Notes
 
 These ops are memory-bound: they do O(n) work per O(n) bytes. Do not expect
-matmul-style speedups from SIMD here — the wins come from **fusing** (e.g.
+matmul-style speedups from SIMD here: the wins come from **fusing** (e.g.
 normalise-and-scale in one pass) to avoid extra memory round-trips.
 
-**Next:** [Milestone 2 — Transformer](milestone-2-transformer.md).
+**Next:** [Milestone 2: Transformer](milestone-2-transformer.md).

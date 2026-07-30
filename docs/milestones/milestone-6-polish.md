@@ -1,4 +1,4 @@
-# Milestone 6 — Polish (portfolio pass)
+# Milestone 6: Polish (portfolio pass)
 
 **Goal:** multi-core performance, an honest head-to-head benchmark, and a repo
 that impresses on sight. Tag `v1.0.0`.
@@ -12,9 +12,11 @@ that impresses on sight. Tag `v1.0.0`.
 - [x] **Thread the decode path** too, and compare its scaling with prefill.
       On the measured short-prompt run decode scaled 3.14× and prefill 2.90×;
       the expected worse-decode result did not appear at this workload.
-- [ ] Optional: **packing** tiles of A/B into contiguous scratch buffers before
-      the micro-kernel (the next step real BLAS takes) — measure whether it
-      helps at your sizes.
+- [x] Optional: **packing** tiles of A/B into contiguous scratch buffers before
+      the micro-kernel. It measured 40.67 GFLOP/s at 512 and 53.22 GFLOP/s at
+      1024, below the existing register-blocked SIMD kernel's 142.73 and 121.59
+      GFLOP/s, so the experiment remains available without replacing the faster
+      production path.
 
 ### Proof
 - [x] Full test suite: kernels, ops, tokenizer round-trip, causal mask,
@@ -23,7 +25,7 @@ that impresses on sight. Tag `v1.0.0`.
       generation test. Do **not** download models in CI.
 
 ### The headline benchmark
-- [x] **tokens/sec vs llama.cpp** — same model family/generation, 4-bit
+- [x] **tokens/sec vs llama.cpp**: same model family/generation, 4-bit
       quantisation class, same thread
       count, same machine. State the CPU, RAM, model, quant, and thread count.
 
@@ -62,7 +64,7 @@ image is 1020.15 MiB versus the 606.54 MiB GGUF. See
 
 ## Stretch goals (after v1.0.0)
 
-- **CUDA backend** (free GPUs on Colab/Kaggle) — the natural next tier.
+- **CUDA backend** (free GPUs on Colab/Kaggle): the natural next tier.
 - Flash-attention-style fused attention for long context.
 - Speculative decoding with a small draft model.
 - ARM NEON kernels (runs on a Mac / phone).

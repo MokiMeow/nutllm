@@ -1,10 +1,10 @@
-# 00 — Overview
+# 00: Overview
 
 ## What nutllm is
 
 An LLM **inference engine**: the software that takes trained model weights and a
 prompt and produces tokens. Not a training framework, not a wrapper around
-someone else's runtime — the kernels, the transformer math, the tokenizer, the
+someone else's runtime: the kernels, the transformer math, the tokenizer, the
 cache, and the quantisation are all written here in C++17 with no dependencies.
 
 ## The one-sentence idea
@@ -21,14 +21,14 @@ cache, and the quantisation are all written here in C++17 with no dependencies.
 3. **No dependencies.** No BLAS, no Eigen, no PyTorch. Writing the kernels is
    the project ([ADR 0001](decisions/0001-no-dependencies.md)).
 4. **Start where the time goes.** Milestone 0 is matmul, because that is where
-   inference actually spends its cycles — not because it is the easiest place to
+   inference actually spends its cycles, not because it is the easiest place to
    start.
 
 ## What it is *not*
 
 - Not a training framework (no autograd, no optimiser).
 - Not a serving stack (no batching scheduler or HTTP API in v1).
-- Not a general tensor library — only the ops a transformer needs.
+- Not a general tensor library: only the ops a transformer needs.
 
 ## The stack
 

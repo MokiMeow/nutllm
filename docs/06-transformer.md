@@ -1,4 +1,4 @@
-# 06 — The transformer
+# 06: The transformer
 
 *Milestones 1–2.* Concept reference; build steps are in the milestone specs.
 
@@ -14,7 +14,7 @@ x ──┬───────────────────────
 ```
 
 Two sublayers, each wrapped in a residual connection and preceded by a
-normalisation. That is the whole architecture — the rest is detail.
+normalisation. That is the whole architecture: the rest is detail.
 
 ## Attention
 
@@ -30,9 +30,9 @@ out = out·Wo                                 (matmul         -> M0)
 Points that bite:
 
 - **Causal masking**: position *i* may only attend to *j ≤ i*. Set the upper
-  triangle to −∞ *before* softmax (not 0 after — that would renormalise wrongly).
+  triangle to −∞ *before* softmax (not 0 after: that would renormalise wrongly).
 - **Multi-head layout**: the head dimension is a reshape, not new math. Getting
-  the strides wrong produces plausible-looking garbage — test against a
+  the strides wrong produces plausible-looking garbage: test against a
   reference on a tiny case.
 - **Grouped-query attention**: there may be fewer K/V heads than query heads.
   Each contiguous group of query heads shares one KV head; TinyLlama uses
@@ -53,7 +53,7 @@ NaNs. This is the single most common numerical bug in a from-scratch engine.
 
 ## RMSNorm
 
-Simpler than LayerNorm — no mean subtraction, no bias:
+Simpler than LayerNorm: no mean subtraction, no bias:
 
 ```
 out = x / sqrt(mean(x²) + eps) * weight
@@ -65,7 +65,7 @@ Cheaper and what Llama-family models use.
 
 Position is encoded by *rotating* pairs of dimensions in Q and K by an angle
 proportional to the position. No learned position table; relative position falls
-out of the dot product naturally. Applied to Q and K only — never to V.
+out of the dot product naturally. Applied to Q and K only: never to V.
 
 ## SwiGLU feed-forward
 
@@ -74,12 +74,12 @@ out = (silu(x·W1) * (x·W3)) · W2      where silu(z) = z * sigmoid(z)
 ```
 
 Three matmuls instead of two, and the hidden dimension is typically ~2.7× the
-model dimension — which is why the FFN, not attention, dominates the FLOPs at
+model dimension, which is why the FFN, not attention, dominates the FLOPs at
 short sequence lengths.
 
 ## Where the time goes
 
-For a small model at short context, **the matmuls are ~90%+ of the work** — which
+For a small model at short context, **the matmuls are ~90%+ of the work**, which
 is why milestone 0 optimised them first. Attention's quadratic term only
 dominates at long context, and that is what flash-attention-style tiling (a
 stretch goal) addresses.
@@ -88,7 +88,7 @@ stretch goal) addresses.
 
 Build each op with a reference version and test it in isolation before
 composing. Then test the whole block against known-good outputs (e.g. compare a
-single layer's output against a PyTorch dump for the same weights — used as a
+single layer's output against a PyTorch dump for the same weights: used as a
 *test fixture*, not a runtime dependency).
 
 ## Implemented layout and block

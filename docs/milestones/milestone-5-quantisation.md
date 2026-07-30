@@ -1,6 +1,6 @@
-# Milestone 5 — Quantisation
+# Milestone 5: Quantisation
 
-**Goal:** INT8 and INT4 weights — the biggest single speedup for decode, because
+**Goal:** INT8 and INT4 weights: the biggest single speedup for decode, because
 decode is bandwidth-bound.
 
 ## Concepts
@@ -13,13 +13,13 @@ and measuring accuracy loss with perplexity.
 - [x] **Quantiser**: per-block (32 or 64 weights) symmetric scales.
       INT8: `scale = max|w| / 127`. INT4: `scale = max|w| / 7`, two weights
       packed per byte. Store the fp16 scale alongside each block.
-- [x] **Document the packing order explicitly** (which nibble is which weight) —
+- [x] **Document the packing order explicitly** (which nibble is which weight):
       it is the most common source of "the output is garbage."
 - [x] **Dequant-in-kernel matmul**: unpack and scale **inside** the inner loop,
       in registers. Dequantising a whole matrix to fp32 in memory first would
       read *more* bytes than fp32 and defeat the entire purpose.
 - [x] **Keep sensitive tensors higher precision** (embeddings, output
-      projection) — standard practice, and cheap.
+      projection): standard practice, and cheap.
 - [x] **Round-trip test**: quantise → dequantise; max error within the block's
       theoretical bound.
 - [x] **Differential test**: quantised matmul vs the fp32 reference, with a
@@ -55,8 +55,8 @@ and hypothesis result are in [docs/08](../08-quantisation.md).
 ## Notes
 
 Garbage output after quantisation is almost always a **packing bug** (nibble
-order, block boundary, scale indexing), not an accuracy limit — INT4 with
+order, block boundary, scale indexing), not an accuracy limit: INT4 with
 per-block scales should still be clearly coherent. Test the round-trip on a
 known tensor before blaming precision.
 
-**Next:** [Milestone 6 — Polish](milestone-6-polish.md).
+**Next:** [Milestone 6: Polish](milestone-6-polish.md).

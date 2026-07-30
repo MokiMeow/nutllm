@@ -1,6 +1,6 @@
-# 08 — Quantisation
+# 08: Quantisation
 
-*Milestone 5.* Storing weights in 8 or 4 bits instead of 32 — the largest single
+*Milestone 5.* Storing weights in 8 or 4 bits instead of 32: the largest single
 win for generation speed, because decode is bandwidth-bound
 ([docs/07](07-kv-cache.md)).
 
@@ -13,7 +13,7 @@ memory optimisation that happens to be expressed in numerics.
 
 ## Blocked (group-wise) quantisation
 
-Quantising a whole tensor with one scale is inaccurate — a single outlier
+Quantising a whole tensor with one scale is inaccurate: a single outlier
 stretches the range and crushes precision everywhere else. Instead, quantise in
 small blocks (32 or 64 weights), each with its own scale:
 
@@ -35,7 +35,7 @@ created. For example `[-7, -1, 2, 7]` packs as bytes `f9 72`.
 ## Dequantising inside the kernel
 
 The point is missed entirely if you dequantise a whole matrix to fp32 in memory
-and then call the fp32 kernel — you would read *more* bytes than before. The
+and then call the fp32 kernel: you would read *more* bytes than before. The
 dequantisation must happen **inside** the matmul, per block, in registers:
 
 ```
@@ -52,7 +52,7 @@ optimisation.
 
 Report **perplexity** on a fixed text sample for fp32 vs INT8 vs INT4 on the
 same model. A typical, honest result is: INT8 nearly identical, INT4 slightly
-worse but usually acceptable. Publish the numbers — a quantisation claim without
+worse but usually acceptable. Publish the numbers: a quantisation claim without
 a perplexity table is meaningless.
 
 | format | bits/weight | size (3B) | perplexity | tokens/sec |
@@ -66,7 +66,7 @@ a perplexity table is meaningless.
 1. **Round-trip test**: quantise then dequantise a known tensor; the max error
    must be within the block's theoretical bound.
 2. **Kernel differential test**: the quantised matmul vs the fp32 reference on
-   the same weights, with a tolerance derived from the quantisation error — not
+   the same weights, with a tolerance derived from the quantisation error, not
    an arbitrary constant.
 3. **End-to-end**: the model must still produce coherent text. Garbage output
    after quantisation usually means a packing/unpacking bug (nibble order), not
@@ -76,7 +76,7 @@ a perplexity table is meaningless.
 
 - **Symmetric** quantisation (scale only, no zero-point) is simpler and fine for
   weights, which are roughly zero-centred.
-- **Keep some tensors in higher precision** — embeddings and the output
+- **Keep some tensors in higher precision**: embeddings and the output
   projection are sensitive; llama.cpp does the same.
 - Store the nibble packing order explicitly in the docs; it is the most common
   source of "why is my output garbage."

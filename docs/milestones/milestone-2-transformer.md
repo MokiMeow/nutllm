@@ -1,6 +1,6 @@
-# Milestone 2 — Transformer + tokenizer
+# Milestone 2: Transformer + tokenizer
 
-**Goal:** a working decoder block and a BPE tokenizer — the model architecture,
+**Goal:** a working decoder block and a BPE tokenizer: the model architecture,
 running on synthetic weights.
 
 ## Concepts
@@ -21,11 +21,11 @@ strides, and byte-pair encoding.
 - [x] **BPE tokenizer**: load a vocab + merges file; encode text → token ids and
       decode back. Round-trip must be lossless for ASCII and UTF-8.
 - [x] **Config struct**: layers, heads, dim, head_dim, ffn_dim, vocab size,
-      max_seq — read from a file in milestone 3.
+      max_seq: read from a file in milestone 3.
 - [x] **Test with synthetic weights**: fixed-seed random weights, assert the
       forward pass is finite, shape-correct, and deterministic.
 - [x] **Reference fixture**: check in a small tensor dump (generated offline with
-      PyTorch — a *fixture*, never a dependency) and assert one layer's output
+      PyTorch: a *fixture*, never a dependency) and assert one layer's output
       matches within tolerance.
 
 ## Files
@@ -40,7 +40,7 @@ strides, and byte-pair encoding.
 - [x] Tokenizer round-trips text losslessly, including multi-byte UTF-8.
 - [x] One layer matches the reference fixture within tolerance.
 - [x] Causal masking verified: position *i* is provably unaffected by inputs at
-      positions > *i* (perturb a later token, assert earlier outputs unchanged —
+      positions > *i* (perturb a later token and assert earlier outputs unchanged;
       this catches mask bugs that eyeballing never will).
 - [x] `make all` warning-free; `make test` green.
 
@@ -50,4 +50,4 @@ The causal-mask perturbation test is the highest-value test in this milestone.
 A broken mask leaks future tokens, the model still produces text, and the bug is
 invisible until you wonder why generation is oddly good on the training set.
 
-**Next:** [Milestone 3 — Real weights](milestone-3-weights.md).
+**Next:** [Milestone 3: Real weights](milestone-3-weights.md).

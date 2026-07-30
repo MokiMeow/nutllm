@@ -1,4 +1,4 @@
-# ADR 0001 — No dependencies (no BLAS, no PyTorch, no ONNX)
+# ADR 0001: No dependencies (no BLAS, no PyTorch, no ONNX)
 
 **Status:** accepted · **Date:** 2026
 
@@ -9,14 +9,14 @@ An inference engine needs fast linear algebra. The obvious options are OpenBLAS
 
 ## Decision
 
-Write everything — kernels, tensor ops, transformer, tokenizer, quantisation —
+Write everything, including kernels, tensor ops, transformer, tokenizer, and quantisation,
 in C++17 with **no third-party libraries**.
 
 ## Rationale
 
 - Calling `cblas_sgemm` teaches nothing about why it is fast. The knowledge this
-  project exists to demonstrate — cache blocking, register blocking, FMA,
-  arithmetic intensity — is precisely what a BLAS library hides.
+  project exists to demonstrate: cache blocking, register blocking, FMA,
+  arithmetic intensity: is precisely what a BLAS library hides.
 - Milestone 0 already justifies the decision empirically: the measured path from
   2.98 → 56.77 → 144.23 GFLOP/s *is* the lesson, and it only exists because the
   kernels are ours.
@@ -30,7 +30,7 @@ in C++17 with **no third-party libraries**.
 - More code and more responsibility: correctness must be gated by our own
   reference implementations ([docs/09](../09-testing-and-benchmarking.md)).
 - We will likely be slower than a mature BLAS at large sizes. That is acceptable
-  and will be reported honestly — being in the same league from scratch is the
+  and will be reported honestly: being in the same league from scratch is the
   achievement.
 - Test fixtures may be *generated* with PyTorch offline and checked in as static
   data, but PyTorch is never a build or runtime dependency.

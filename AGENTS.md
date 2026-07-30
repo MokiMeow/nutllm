@@ -1,4 +1,4 @@
-# AGENTS.md — how this repo is built
+# AGENTS.md: how this repo is built
 
 The working agreement for this repository: anyone contributing to nutllm should
 read it fully before making changes. If anything here conflicts with a note elsewhere, **this file
@@ -8,9 +8,9 @@ wins.**
 
 ## 1. How the work is organised
 
-- **Planning** — plans milestones, defines Definitions of Done, reviews
+- **Planning**: plans milestones, defines Definitions of Done, reviews
   diffs, keeps benchmarks and docs honest.
-- **Implementation** — proceed one milestone at a time against `docs/milestones/`,
+- **Implementation**: proceed one milestone at a time against `docs/milestones/`,
   keeping the build clean, the correctness gate green, and the numbers real.
 
 The loop: **pick the lowest-numbered unfinished milestone → implement →
@@ -42,7 +42,7 @@ Definition of Done → update docs/CHANGELOG → commit → next.**
 |---------|--------------|
 | `make all` | Build `build/nutllm` (zero warnings expected). |
 | `make run` | Correctness checks + the benchmark table. |
-| `make test` | Correctness gate only — fails if any kernel disagrees. |
+| `make test` | Correctness gate only: fails if any kernel disagrees. |
 | `make bench` | Larger benchmark (1024). |
 | `make clean` | Remove `build/`. |
 
@@ -57,7 +57,7 @@ Portable build (no `-march=native`): `make ARCH="-mavx2 -mfma"`.
   types, trailing `_` on private members.
 - Kernels: keep the reference version alongside the optimised one, forever. It
   is the oracle.
-- Comment *why* — which cache level a tile targets, why a loop order was chosen,
+- Comment *why* a tile targets a cache level, why a loop order was chosen,
   what register pressure a micro-kernel has. Not what the loop does.
 - Prefer plain functions and small structs over class hierarchies or templates.
 - Numerical code: state tolerances explicitly; float accumulation reorders, so
@@ -92,7 +92,7 @@ llama.cpp on the same machine.
 
 ## 7. What NOT to do
 
-- Do not add a dependency to "save time" — the kernels are the point.
+- Do not add a dependency to "save time": the kernels are the point.
 - Do not delete or bypass the reference implementations.
 - Do not report a speedup without the measurement that produced it.
 - Do not optimise before the correctness gate passes for the new code.
@@ -102,10 +102,10 @@ llama.cpp on the same machine.
 ## 8. Tools reference
 
 - **g++** (C++17, `-O3 -march=native`).
-- **Intel Intrinsics Guide** — <https://www.intel.com/content/www/us/en/docs/intrinsics-guide/>
-  — the authority for every intrinsic used.
-- **`perf stat`** — cache misses and IPC when a kernel underperforms.
-- **`objdump -d`** — confirm the compiler actually emitted `vfmadd*` where you
+- **Intel Intrinsics Guide**: <https://www.intel.com/content/www/us/en/docs/intrinsics-guide/>
+ : the authority for every intrinsic used.
+- **`perf stat`**: cache misses and IPC when a kernel underperforms.
+- **`objdump -d`**: confirm the compiler actually emitted `vfmadd*` where you
   expected.
 
 Build one milestone, prove it, measure it, document it, commit. Then the next.

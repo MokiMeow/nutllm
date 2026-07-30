@@ -1,4 +1,4 @@
-# 03 — Model files and generation
+# 03: Model files and generation
 
 nutllm milestone 3 reads the safetensors container directly. The file is
 opened read-only and memory-mapped; tensor views point into that mapping.
