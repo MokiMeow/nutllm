@@ -1,7 +1,7 @@
 # 04 — Roadmap
 
-From "a matmul at 144 GFLOP/s" (today) to "runs a real language model and
-publishes tokens/sec."
+From "a matmul at 144 GFLOP/s" to a real 1.1B language model with published,
+reproducible tokens/sec.
 
 ## The plan
 
@@ -10,10 +10,10 @@ publishes tokens/sec."
 | 0 | **Compute core** ✅ | Matrix + 3 matmul kernels + benchmark | cache blocking, FMA, register blocking, why memory dominates |
 | 1 | **Tensor ops** ✅ | softmax, RMSNorm, SwiGLU, RoPE, residual, matvec | numerical stability, fused ops, reference testing |
 | 2 | **Transformer** ✅ | attention block, byte-level BPE tokenizer, forward pass | Q/K/V, causal masking, multi-head layout |
-| 3 | **Real weights** 🟡 | safetensors loader + deterministic tiny generation; stock-model adapters pending | file formats, mmap, tensor layouts |
+| 3 | **Real weights** ✅ | safetensors + llama2.c loaders, real tokenizer, coherent TinyLlama output | file formats, mmap/pread, tensor layouts |
 | 4 | **KV cache** ✅ | incremental decoding | prefill vs decode; why generation is bandwidth-bound |
-| 5 | **Quantisation** 🟡 | INT8/INT4 kernels proven; real-model proof pending | accuracy/size trade-offs, dequant inside the kernel |
-| 6 | **Polish** 🟡 | threading/CI/presentation done; reference benchmark and release pending | honest benchmarking, presentation |
+| 5 | **Quantisation** ✅ | INT8/INT4 kernels and coherent 1.1B generation | accuracy/size trade-offs, dequant inside the kernel |
+| 6 | **Polish** ✅ | persistent threading, CI, presentation, llama.cpp comparison, v1.0.0 | honest benchmarking, presentation |
 
 ## Dependency order
 
@@ -36,13 +36,13 @@ quantisation level, thread count, and CPU stated.
 
 | engine | model | quant | tokens/sec |
 |---|---|---|---|
-| llama.cpp | *same model* | Q4 | X |
-| **nutllm** | *same model* | Q4 | Y |
+| llama.cpp | TinyLlama 1.1B Chat v0.2 | Q4_0 | 44.43 decode |
+| **nutllm** | TinyLlama 1.1B Chat v0.2 | INT4 block 32 | 17.089 decode |
 
-Being *slower* than llama.cpp is a perfectly good result — it has years of
-tuning. The achievement is a from-scratch engine in the same league, with an
-honest number and an explanation of the gap. Publishing a fake win would be
-worth less than publishing a real loss.
+Both numbers are four-thread measurements on the same machine. The
+quantization policies are both 4-bit but not byte-identical; the full conditions
+and explanation of the 2.60× decode gap are in
+[docs/09](09-testing-and-benchmarking.md).
 
 ## Stretch goals (after v1.0.0)
 

@@ -72,23 +72,37 @@ make bench   # 1024x1024
 
 ## Status
 
-Milestones 0 through 2 are complete. Milestone 3's memory-mapped loader,
-generation loop, sampling, CLI, and tiny-checkpoint CI proof are complete; a
-stock open-model adapter and coherent-text validation remain. The road to a
-real model is in [docs/04-roadmap.md](docs/04-roadmap.md).
+Version 1.0.0 completes the full roadmap: real TinyLlama weights, grouped-query
+attention, cached decoding, real INT8/INT4 generation, reusable worker threads,
+and an honest llama.cpp comparison. CI keeps the complete tiny-checkpoint path
+network-free.
 
 | # | Milestone | State |
 |---|-----------|-------|
 | 0 | Compute core: matmul kernels + benchmark | ✅ done |
 | 1 | Tensor ops: softmax, RMSNorm, SwiGLU, RoPE | ✅ done |
 | 2 | Transformer block + tokenizer (BPE) | ✅ done |
-| 3 | Safetensors + generation; stock-model validation | 🟡 partial |
+| 3 | Safetensors/llama2.c + coherent real-model generation | ✅ done |
 | 4 | KV cache + incremental decoding | ✅ done |
-| 5 | INT8/INT4 kernels; real-model proof | 🟡 partial |
-| 6 | Threading/CI/presentation; llama.cpp release proof | 🟡 partial |
+| 5 | INT8/INT4 kernels + real-model proof | ✅ done |
+| 6 | Threading/CI/presentation + llama.cpp release proof | ✅ done |
 
-The endgame: **run a real open-weights model and publish tokens/sec** against
-llama.cpp on the same machine.
+## Headline result
+
+TinyLlama 1.1B Chat v0.2, four WSL2 vCPUs, a 5-token prompt and 16 generated
+tokens:
+
+| engine | 4-bit format | model storage | prefill tok/s | decode tok/s |
+|---|---|---:|---:|---:|
+| **nutllm** | symmetric INT4, block 32 | 1,020.15 MiB | 19.142 | 17.089 |
+| llama.cpp b10194 | Q4_0 | 606.54 MiB | 149.68 ± 6.84 | 44.43 ± 2.09 |
+
+llama.cpp wins by 7.82× in prefill and 2.60× in decode. That is the honest
+result: its GGUF is smaller and its scheduling, packing, and kernels are much
+more mature. The formats are both 4-bit but not byte-identical—nutllm keeps the
+embeddings and classifier fp32 by design. Full conditions, hashes, one-thread
+results, and reproduction commands are in
+[docs/09-testing-and-benchmarking.md](docs/09-testing-and-benchmarking.md).
 
 ## Where the time goes
 
@@ -98,7 +112,7 @@ of cached attention history; it streams weights and becomes bandwidth-bound.
 That is why the project reports these phases separately and why INT4 storage is
 useful even though unpacking adds arithmetic.
 
-On the current 4-vCPU WSL2 environment, the row-parallel kernels measured:
+On the 4-vCPU WSL2 environment, the standalone row-parallel kernels measured:
 
 | threads | 768³ GEMM | speedup | efficiency | 4096² matvec | speedup |
 |---:|---:|---:|---:|---:|---:|
@@ -107,8 +121,7 @@ On the current 4-vCPU WSL2 environment, the row-parallel kernels measured:
 | 4 | 9.15 ms | 3.01× | 75.2% | 2.60 ms | 3.93× |
 
 Median timings, `-O3 -march=native`, 13th Gen Intel Core i7-13650HX exposed
-through WSL2. The unusually strong four-thread matvec result is reported as
-measured, not generalized into a real-model decode claim.
+through WSL2. The release benchmark above measures the full decoder separately.
 
 ## Quick start
 
@@ -120,6 +133,9 @@ make test                          # correctness gate (what CI runs)
 ./build/nutllm --model tests/fixtures/tiny.safetensors \
   --vocab tests/fixtures/tiny.vocab --merges tests/fixtures/tiny.merges \
   --prompt H --max-tokens 8        # prints Hi!
+./build/nutllm --model /path/to/tl-chat.bin \
+  --tokenizer /path/to/tokenizer.bin --prompt "Once upon a time" \
+  --max-tokens 16 --quant int4 --threads 4 --stats
 ```
 
 Requires x86-64 with AVX2 + FMA (any CPU since ~2013). Without them the SIMD

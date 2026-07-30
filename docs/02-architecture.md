@@ -25,9 +25,13 @@ each level has a reference implementation that defines "correct."
 | File | Role |
 |------|------|
 | `include/tensor.hpp` | `Matrix` — row-major, 64-byte aligned, move-only |
-| `include/matmul.hpp` | the three kernel declarations + `simd_available()` |
+| `include/matmul.hpp` | fp32 kernels and the persistent row-worker executor |
+| `include/llama2.hpp` | llama2.c checkpoint/tokenizer adapter |
+| `include/kvcache.hpp` | preallocated GQA-aware KV cache |
+| `include/quant.hpp` | blocked INT8/INT4 storage and inner-loop dequantization |
+| `include/quant_model.hpp` | real quantized transformer weights and decoder |
 | `src/matmul.cpp` | naive / blocked / register-blocked implementations |
-| `src/main.cpp` | correctness harness and benchmark driver |
+| `src/main.cpp` | correctness harness, benchmark driver, and model CLI |
 
 ## Design choices that matter
 
@@ -40,26 +44,26 @@ performance bug, so the type makes it impossible.
 it is the oracle every future kernel is checked against, and it stays in the
 codebase forever.
 
-**Kernels take shapes, not policies.** Blocking sizes are constants in one place;
-threading (M6) will wrap the kernels rather than being threaded through them.
+**Kernels take shapes, not policies.** Blocking sizes are constants in one
+place. A reusable row executor wraps GEMM, fp32 matvec, linear, and quantized
+matvec work, avoiding fresh worker creation for every projection.
 
 **Feature-guarded SIMD.** Intrinsics live behind `__AVX2__`/`__FMA__` with a
 scalar fallback, so the project builds and runs anywhere and degrades honestly.
 
-## How the layers will grow
+## How the layers grew
 
-- **M1** adds elementwise/reduction ops (softmax, RMSNorm, SwiGLU, RoPE), each
+- **M1** added elementwise/reduction ops (softmax, RMSNorm, SwiGLU, RoPE), each
   with a reference and a test — same discipline as matmul.
-- **M2** composes them into an attention block; attention is itself three
+- **M2** composed them into an attention block; attention is itself three
   matmuls plus a softmax, so it sits directly on M0.
-- **M3** adds a weight loader (mmap the file, point tensors at it — no copy) and
-  the sampling loop.
-- **M4** adds the KV cache, which changes decode from "matmul" to
+- **M3** added safetensors and llama2.c loaders plus the sampling loop.
+- **M4** added the KV cache, which changes decode from "matmul" to
   "matrix-vector" — bandwidth-bound, a different optimisation problem
   ([docs/07](07-kv-cache.md)).
-- **M5** replaces fp32 weights with INT8/INT4 blocks, dequantised inside the
+- **M5** replaced projection weights with INT8/INT4 blocks, dequantised inside the
   kernel so the memory traffic actually drops
   ([docs/08](08-quantisation.md)).
-- **M6** parallelises across cores and benchmarks against llama.cpp.
+- **M6** parallelised across cores and benchmarked against llama.cpp.
 
 See the [roadmap](04-roadmap.md) and the [milestones](milestones/).

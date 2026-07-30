@@ -6,7 +6,19 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-07-30
+
 ### Added
+- Real llama2.c checkpoint/tokenizer support with grouped-query attention,
+  shared or separate classifiers, bounded pread-based cold loading, and
+  deterministic TinyLlama 1.1B validation.
+- End-to-end INT8/INT4 transformer storage and generation, AVX2/FMA block-32
+  decode kernels, fp32 sensitive tensors, runtime storage accounting, and
+  coherent real-model proof.
+- Persistent row-worker pools for the full decode path, CLI thread/quant/stats
+  controls, and CI smoke coverage for fp32, INT8, and INT4 checkpoint routes.
+- Hash-pinned real-model verification and an honest TinyLlama comparison
+  against official llama.cpp b10194/Q4_0 artifacts.
 - Milestone 6 engineering pass: dependency-free row-parallel GEMM and matvec
   kernels, awkward-row/thread-count correctness coverage, reproducible scaling
   tables with efficiency, a warning-as-error build, and a checked-in CLI demo.

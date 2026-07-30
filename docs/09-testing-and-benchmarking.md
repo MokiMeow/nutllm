@@ -75,5 +75,58 @@ i7-13650HX, `-O3 -march=native`):
 | 4 | 9.15 | 3.01× | 75.2% | 2.60 | 3.93× |
 
 The >100% two-thread GEMM efficiency is normal measurement/turbo variation,
-not superlinear algorithmic scaling. These are standalone kernel results. They
-are not substituted for the still-pending same-model llama.cpp comparison.
+not superlinear algorithmic scaling. These are standalone kernel results.
+
+## TinyLlama release benchmark
+
+Conditions:
+
+- 13th Gen Intel Core i7-13650HX exposed as 4 WSL2 vCPUs (2 cores/4 threads),
+  3.8 GiB RAM and 2.0 GiB swap.
+- GCC C++17, `-O3 -march=native`, AVX2/FMA.
+- TinyLlama 1.1B Chat v0.2, a 5-token prompt and 16 generated tokens.
+- nutllm symmetric INT4 (block 32, fp16 scale, fp32 embeddings/classifier).
+- official llama.cpp release build 10194, commit `e1a1abb78`, and the official
+  TinyLlama v0.2 Q4_0 GGUF.
+
+| engine | model storage | threads | prefill tok/s | decode tok/s |
+|---|---:|---:|---:|---:|
+| nutllm INT4 | 1,020.15 MiB | 1 | 6.611 | 5.444 |
+| nutllm INT4 | 1,020.15 MiB | 4 | 19.142 | 17.089 |
+| llama.cpp Q4_0 | 606.54 MiB | 1 | 43.10 ± 4.28 | 24.42 ± 1.09 |
+| llama.cpp Q4_0 | 606.54 MiB | 4 | 149.68 ± 6.84 | 44.43 ± 2.09 |
+
+The four-thread nutllm run scales 2.90× in prefill and 3.14× in decode. At this
+short context decode did not scale worse than prefill, contrary to the initial
+expectation; both remain well below llama.cpp. llama.cpp is 7.82× faster in
+prefill and 2.60× faster in decode at four threads. The likely gaps are its
+smaller end-to-end format, persistent/finer-grained scheduling, packed kernels,
+and years of architecture-specific tuning.
+
+This is a same model family/generation, 4-bit class, thread count, token count,
+and machine comparison—not a byte-identical quantization comparison. nutllm's
+policy keeps two large sensitive tensors fp32, while llama.cpp Q4_0 stores a
+606.54 MiB mixed-format GGUF. That size difference is part of the result.
+
+### Reproduction and provenance
+
+`scripts/benchmark-tinyllama.sh` verifies all three model hashes, clean-builds
+nutllm, captures one- and four-thread runs, and invokes `llama-bench`:
+
+```bash
+./scripts/benchmark-tinyllama.sh \
+  /path/to/tl-chat.bin /path/to/tokenizer.bin \
+  /path/to/llama-bench /path/to/ggml-model-q4_0.gguf
+```
+
+| artifact | SHA-256 |
+|---|---|
+| llama2.c model | `6d12ab6e18a5c1216c16053fc20647a6438fca483e4586271306e13b082213f4` |
+| llama2.c tokenizer | `e610c22d05d092569bafcc2e3f9795b9b43c829fab53d3489d454614cc5b87ce` |
+| official Q4_0 GGUF | `3849e8024b234f2ec0f2e3b5b59ea368804486563394886ae03d0a67ae70d504` |
+
+The GGUF comes from the
+[official TinyLlama v0.2 GGUF repository](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v0.2-GGUF);
+the comparison binary comes from the
+[official llama.cpp release](https://github.com/ggml-org/llama.cpp/releases).
+Model downloads remain deliberately outside CI.

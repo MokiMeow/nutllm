@@ -34,6 +34,9 @@ Points that bite:
 - **Multi-head layout**: the head dimension is a reshape, not new math. Getting
   the strides wrong produces plausible-looking garbage — test against a
   reference on a tiny case.
+- **Grouped-query attention**: there may be fewer K/V heads than query heads.
+  Each contiguous group of query heads shares one KV head; TinyLlama uses
+  32 query heads and 4 KV heads.
 - **The 1/√head_dim scale** keeps logits in a sane range; forgetting it makes
   softmax saturate.
 
@@ -98,9 +101,11 @@ slice, scores above the causal diagonal become negative infinity before
 softmax, and V is never rotated.
 
 `decoder_block` implements pre-normalized attention plus a pre-normalized
-SwiGLU feed-forward residual. Its optimized two-layer output agrees with the
-permanent reference within `2e-5`; changing the last input row leaves every
-earlier attention row bit-identical.
+SwiGLU feed-forward residual. The incremental decoder applies the same block to
+one token, writes only `kv_heads` cache entries, and maps each query head to its
+shared KV head. Its optimized two-layer output agrees with the permanent
+reference within `2e-5`; changing the last input row leaves every earlier
+attention row bit-identical.
 
 The tokenizer begins from raw bytes, so decoding is lossless for arbitrary
 UTF-8. Vocabulary and merge files use hex-encoded byte strings, which also
