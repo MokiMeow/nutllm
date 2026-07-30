@@ -22,6 +22,10 @@ void matmul_blocked(const Matrix &a, const Matrix &b, Matrix &c);
  * blocked version when built without AVX2. */
 void matmul_simd(const Matrix &a, const Matrix &b, Matrix &c);
 
+/* Copy bounded A and B panels into contiguous scratch buffers before running
+ * the inner kernel. Kept separate so its cost can be measured honestly. */
+void matmul_packed(const Matrix &a, const Matrix &b, Matrix &c);
+
 /* True when this build actually has AVX2/FMA compiled in. */
 bool simd_available();
 

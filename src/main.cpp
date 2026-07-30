@@ -77,14 +77,19 @@ bool run_correctness() {
         matmul_simd(a, b, got);
         const double d_simd = max_diff(reference, got);
 
+        matmul_packed(a, b, got);
+        const double d_packed = max_diff(reference, got);
+
         /* float accumulation reorders, so exact equality is not expected;
          * this tolerance is far tighter than any real error would be. */
         const double tolerance = 1e-3;
-        const bool pass = d_blocked < tolerance && d_simd < tolerance;
+        const bool pass = d_blocked < tolerance && d_simd < tolerance &&
+                          d_packed < tolerance;
         ok = ok && pass;
 
-        std::printf("  %-4s n=%-4zu blocked_diff=%.2e simd_diff=%.2e\n",
-                    pass ? "ok" : "FAIL", n, d_blocked, d_simd);
+        std::printf(
+            "  %-4s n=%-4zu blocked_diff=%.2e simd_diff=%.2e packed_diff=%.2e\n",
+            pass ? "ok" : "FAIL", n, d_blocked, d_simd, d_packed);
     }
     return ok;
 }
