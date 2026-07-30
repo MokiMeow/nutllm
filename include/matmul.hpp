@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+
 #include "tensor.hpp"
 
 /* Three implementations of C = A x B (A: MxK, B: KxN, C: MxN).
@@ -27,3 +29,9 @@ void matmul_threaded(const Matrix &a, const Matrix &b, Matrix &c,
                      size_t thread_count);
 void matvec_threaded(const Matrix &matrix, const float *vector, float *output,
                      size_t thread_count);
+void linear_threaded(const float *input, const Matrix &weights, float *output,
+                     size_t thread_count);
+void run_threaded_rows(
+    size_t rows, size_t thread_count,
+    const std::function<void(size_t, size_t)> &function);
+size_t threaded_worker_start_count();

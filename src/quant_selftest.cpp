@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdio>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include "matmul.hpp"
@@ -122,6 +123,34 @@ bool run_quant_selftests() {
                 std::fabs(double(reference[row] - candidate[row])) <=
                     bound + 1e-5;
         }
+        Matrix block_weights(7, 64);
+        fill_random(block_weights, 607);
+        const QuantizedMatrix block_int8 =
+            QuantizedMatrix::quantize(block_weights, QuantType::int8);
+        const QuantizedMatrix block_int4 =
+            QuantizedMatrix::quantize(block_weights, QuantType::int4);
+        Matrix restored_int8 = dequantize(block_int8);
+        Matrix restored_int4 = dequantize(block_int4);
+        std::vector<float> block_vector(64, 0.125f);
+        std::vector<float> block_reference(7);
+        std::vector<float> block_candidate(7);
+        float block_worst = 0.0f;
+        for (const auto &entry :
+             {std::pair<const Matrix *, const QuantizedMatrix *>(
+                  &restored_int8, &block_int8),
+              std::pair<const Matrix *, const QuantizedMatrix *>(
+                  &restored_int4, &block_int4)}) {
+            matvec(*entry.first, block_vector.data(),
+                   block_reference.data());
+            matvec_quantized_threaded(
+                *entry.second, block_vector.data(),
+                block_candidate.data(), 3);
+            for (size_t row = 0; row < block_reference.size(); row++)
+                block_worst = std::max(
+                    block_worst,
+                    std::fabs(block_reference[row] - block_candidate[row]));
+        }
+        const bool block_kernel_ok = block_worst < 1e-4f;
 
         const size_t blocks = (weights.size() + 31) / 32;
         const bool storage_ok =
@@ -159,7 +188,7 @@ bool run_quant_selftests() {
             double(int4_ratio));
         std::printf(
             "  %s quantized matmul bounds    ratios=%.3f/%.3f\n",
-            matmul_ok && matvec_ok ? "ok" : "FAIL",
+            matmul_ok && matvec_ok && block_kernel_ok ? "ok" : "FAIL",
             double(int8_matmul_ratio), double(int4_matmul_ratio));
         std::printf(
             "  %s INT4 packing/storage       bytes fp32=%zu i8=%zu i4=%zu\n",
@@ -171,6 +200,7 @@ bool run_quant_selftests() {
             perplexity_ok ? "ok" : "FAIL", fp32_perplexity,
             int8_perplexity, int4_perplexity);
         return roundtrip_ok && packing_ok && matmul_ok && matvec_ok &&
+               block_kernel_ok &&
                storage_ok && perplexity_ok;
     } catch (const std::exception &error) {
         std::printf("  FAIL quantization selftest: %s\n", error.what());

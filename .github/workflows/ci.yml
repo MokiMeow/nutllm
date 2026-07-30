@@ -35,6 +35,18 @@ jobs:
             --merges tests/fixtures/tiny.merges \
             --prompt H --max-tokens 8)
           test "$output" = "Hi!"
+          output=$(./build/nutllm \
+            --model tests/fixtures/tiny-llama2.bin \
+            --tokenizer tests/fixtures/tiny-llama2.tokenizer \
+            --prompt H --max-tokens 8)
+          test "$output" = "Hi!"
+          for quant in int8 int4; do
+            output=$(./build/nutllm \
+              --model tests/fixtures/tiny-llama2.bin \
+              --tokenizer tests/fixtures/tiny-llama2.tokenizer \
+              --prompt H --max-tokens 8 --quant "$quant" --threads 4)
+            test "$output" = "Hi!"
+          done
 
       - name: Benchmark (informational — runner speed is not a gate)
         run: make run

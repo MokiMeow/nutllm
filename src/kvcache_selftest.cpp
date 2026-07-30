@@ -64,7 +64,7 @@ float last_row_diff(const Matrix &reference,
 
 bool run_kvcache_selftests() {
     try {
-        const ModelConfig config{2, 2, 8, 4, 12, 8, 16, 7};
+        const ModelConfig config{2, 4, 8, 2, 12, 8, 16, 7, 2};
         ModelWeights random_model(config);
         randomize_model(random_model);
         KVCache cache(config);
@@ -82,12 +82,13 @@ bool run_kvcache_selftests() {
             last_row_diff(reference_prefix, cached_prefix_last);
 
         const std::vector<float> cached_next =
-            decode_token(random_model, 3, cache);
+            decode_token(random_model, 3, cache, 3);
         const std::vector<int> extended{0, 1, 2, 3};
         Matrix reference_next = uncached_hidden(random_model, extended);
         const float decode_diff = last_row_diff(reference_next, cached_next);
         const size_t expected_bytes =
-            2 * config.layers * config.max_seq * config.dim * sizeof(float);
+            2 * config.layers * config.max_seq * config.kv_dim() *
+            sizeof(float);
         const bool layout_ok =
             cache.length() == extended.size() &&
             cache.memory_bytes() == expected_bytes;
@@ -96,6 +97,8 @@ bool run_kvcache_selftests() {
             load_model("tests/fixtures/tiny.safetensors");
         SamplingConfig sampling;
         sampling.max_tokens = 8;
+        SamplingConfig threaded_sampling = sampling;
+        threaded_sampling.threads = 3;
         bool token_ids_ok = true;
         for (const std::vector<int> &prompt :
              {std::vector<int>{0}, std::vector<int>{1},
@@ -103,7 +106,10 @@ bool run_kvcache_selftests() {
             token_ids_ok =
                 token_ids_ok &&
                 generate_tokens(tiny, prompt, sampling) ==
-                    generate_tokens_cached(tiny, prompt, sampling);
+                    generate_tokens_cached(tiny, prompt, sampling) &&
+                generate_tokens_cached(tiny, prompt, sampling) ==
+                    generate_tokens_cached(tiny, prompt,
+                                           threaded_sampling);
         }
 
         const bool numerical_ok =

@@ -81,7 +81,7 @@ a perplexity table is meaningless.
 - Store the nibble packing order explicitly in the docs; it is the most common
   source of "why is my output garbage."
 
-## Current measured kernel proof
+## Measured accuracy proof
 
 The checked-in deterministic test uses 185 weights (block size 32), including
 an odd final nibble and block boundaries:
@@ -92,13 +92,33 @@ an odd final nibble and block boundaries:
 | INT8 + fp16 scales | 197 | 8.52 | 11.608 |
 | INT4 + fp16 scales | 105 | 4.54 | 11.715 |
 
-The synthetic perplexity sample is only a numerical regression fixture, not a
-language-model quality claim. Round-trip worst-error/bound ratios were 0.879
-(INT8) and 0.993 (INT4); quantized-matmul ratios were 0.726 and 0.756. A ratio
-below 1 proves every observed error stayed inside the bound derived from
-rounding and fp16 scale storage.
+The three perplexities use the same fixed logits and targets. This is a
+numerical regression fixture, not a claim about TinyLlama corpus quality.
+Round-trip worst-error/bound ratios were 0.879 (INT8) and 0.993 (INT4);
+quantized-matmul ratios were 0.726 and 0.756. A ratio below 1 proves every
+observed error stayed inside the bound derived from rounding and fp16 scale
+storage.
 
-Stock-model quantized generation, real-text perplexity, and decode tokens/sec
-remain pending with the stock-model adapter from milestone 3. Embeddings and
-the language-model output head therefore remain fp32 by policy; only projection
-matrices should be routed through this quantized kernel when that adapter lands.
+## Real-model storage, speed, and quality
+
+TinyLlama 1.1B Chat v0.2 was loaded from the same fp32 llama2.c checkpoint for
+both formats. All seven large projections per layer are quantized; embeddings,
+normalization weights, and the separate classifier stay fp32.
+
+| format | projection bits/weight | runtime image | fixed-fixture perplexity | real decode tok/s |
+|---|---:|---:|---:|---:|
+| fp32 | 32.00 | 4,196.90 MiB source | 11.598 | not run in 3.8 GiB guest |
+| INT8 + fp16 scales | 8.50 | 1,482.15 MiB | 11.608 | 15.388 |
+| INT4 + fp16 scales | 4.50 | 1,020.15 MiB | 11.715 | 15.985 |
+
+Real runs used four threads, a 5-token `Once upon a time` prompt, 16 generated
+tokens, `-O3 -march=native`, and the machine described in
+[docs/09](09-testing-and-benchmarking.md). INT8 produced the same
+`What is the capital of France?` greedy prefix as the fp32 llama2.c reference;
+INT4 produced `Dame Fortune, I am your guest. I am a powerful sor`.
+
+The simple bandwidth prediction did **not** hold end to end: the INT4 runtime
+image is 31% smaller than INT8, but decode improved only 1.04×. Profiling
+implications are clear from the design: the fp32 classifier is streamed every
+token, and INT4 nibble unpack/sign-extension adds compute. This is reported as
+a rejected hypothesis, not rounded into a proportional-speed claim.

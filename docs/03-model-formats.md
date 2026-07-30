@@ -55,11 +55,59 @@ The model and byte-BPE files are deliberately separate:
 The default is deterministic greedy sampling. `--temperature`, `--top-p`, and
 `--seed` enable reproducible nucleus sampling.
 
+## llama2.c checkpoints
+
+The real-model adapter also accepts the dependency-free llama2.c binary
+checkpoint and tokenizer formats. The seven-int32 header supplies dimension,
+FFN dimension, layer count, attention heads, KV heads, signed vocabulary size,
+and context length. A positive vocabulary size means the classifier is tied to
+the embeddings; a negative value means a separate classifier follows the other
+weights.
+
+Both conventional multi-head attention and grouped-query attention are
+supported. The KV cache stores only `kv_heads × head_dim` values per position,
+and query heads map to their shared KV head during attention.
+
+```bash
+./build/nutllm \
+  --model /path/to/model.bin \
+  --tokenizer /path/to/tokenizer.bin \
+  --prompt "Once upon a time" --max-tokens 16 \
+  --quant int4 --threads 4 --stats
+```
+
+The fp32 compatibility path copies/transposes into the original internal
+matrix layout. The INT8/INT4 path validates the layout with mmap, then reads one
+projection layer at a time with bounded `pread` buffers and quantizes directly
+into its final storage. This avoids holding a second fp32 model in memory and
+makes cold runs reliable in a 3.8 GiB WSL2 guest.
+
+## Real-model proof
+
+The validated checkpoint is `kirp/TinyLlama-1.1B-Chat-v0.2-bin`
+(Apache-2.0):
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `tl-chat.bin` | 4,400,767,004 | `6d12ab6e18a5c1216c16053fc20647a6438fca483e4586271306e13b082213f4` |
+| tokenizer | 433,920 | `e610c22d05d092569bafcc2e3f9795b9b43c829fab53d3489d454614cc5b87ce` |
+
+`scripts/verify-tinyllama.sh MODEL TOKENIZER` hash-pins both files, performs a
+clean build, runs INT8 and INT4, and checks the coherent greedy prefixes.
+INT8 produced:
+
+```text
+Once upon a time
+What is the capital of France?<|im_end|>
+```
+
+The same INT8 prefix through the upstream llama2.c fp32 reference began
+`What is the capital of France?`, providing an independent layout/tokenizer
+corroboration.
+
 ## Compatibility boundary
 
-This milestone proves the complete file-to-token engine on a synthetic
-checkpoint. Typical public Llama checkpoints use `F16`/`BF16`, an external
-`config.json`, and SentencePiece or Hugging Face tokenizer assets. Those
-adapters are not implemented yet, so a stock 1B–3B checkpoint has not been
-claimed as validated. The milestone status remains partial until one is run
-and its output is compared with a reference engine.
+The safetensors path remains intentionally F32-only and uses nutllm metadata
+plus byte BPE. Public F16/BF16 safetensors and GGUF loading are outside this
+release. GGUF is used only by the independently built llama.cpp benchmark;
+nutllm's real-model interchange is llama2.c.

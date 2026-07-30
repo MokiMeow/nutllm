@@ -74,11 +74,32 @@ bool run_threading_selftests() {
         maximum_difference(matvec_reference_output.data(),
                            matvec_candidate.data(), weights.rows());
     const bool matvec_ok = matvec_difference < 1e-5f;
+    const size_t workers_after_warmup = threaded_worker_start_count();
+    matvec_threaded(weights, vector.data(), matvec_candidate.data(), 4);
+    const bool worker_reuse_ok =
+        threaded_worker_start_count() == workers_after_warmup;
+
+    std::vector<float> linear_input(weights.rows(), 0.125f);
+    std::vector<float> linear_reference(weights.cols(), 0.0f);
+    std::vector<float> linear_candidate(weights.cols());
+    for (size_t row = 0; row < weights.rows(); row++) {
+        for (size_t column = 0; column < weights.cols(); column++)
+            linear_reference[column] +=
+                linear_input[row] * weights.at(row, column);
+    }
+    linear_threaded(linear_input.data(), weights, linear_candidate.data(), 3);
+    const float linear_difference =
+        maximum_difference(linear_reference.data(), linear_candidate.data(),
+                           weights.cols());
+    const bool linear_ok = linear_difference < 1e-5f;
     std::printf(
-        "  %s threaded row splits          gemm=%.2e matvec=%.2e\n",
-        matmul_ok && matvec_ok ? "ok" : "FAIL", double(worst),
-        double(matvec_difference));
-    return matmul_ok && matvec_ok;
+        "  %s threaded row splits          gemm=%.2e matvec=%.2e "
+        "linear=%.2e workers=%s\n",
+        matmul_ok && matvec_ok && linear_ok && worker_reuse_ok ?
+            "ok" : "FAIL",
+        double(worst), double(matvec_difference), double(linear_difference),
+        worker_reuse_ok ? "reused" : "recreated");
+    return matmul_ok && matvec_ok && linear_ok && worker_reuse_ok;
 }
 
 void run_threading_benchmark() {

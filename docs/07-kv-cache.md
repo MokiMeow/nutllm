@@ -44,22 +44,26 @@ decode barely at all. Optimise each phase for its own bottleneck.
 ## Memory cost
 
 ```
-bytes = 2 (K and V) × layers × heads × head_dim × max_seq × sizeof(elem)
+bytes = 2 (K and V) × layers × kv_heads × head_dim × max_seq × sizeof(elem)
 ```
 
-The implementation stores `[layer][head][position][head_dim]`, so one head's
-history is contiguous during attention. It allocates the full capacity once
-and never moves it during generation.
+The implementation stores `[layer][kv_head][position][head_dim]`, so one KV
+head's history is contiguous during attention. It allocates the full capacity
+once and never moves it during generation. For ordinary multi-head attention
+`kv_heads == heads`; grouped-query attention lets several query heads share one
+KV head and reduces cache memory in direct proportion.
 
 This grows linearly with context length and is often larger than the model
 itself at long context. Mitigations (stretch goals): quantise the cache to INT8,
-grouped-query attention (share K/V across heads), or a sliding window.
+more aggressive KV quantisation or a sliding window. Grouped-query attention
+is implemented and used by the validated TinyLlama checkpoint (32 query heads,
+4 KV heads).
 
 ## Implementation notes
 
 - **Preallocate** the cache for `max_seq` at load time; growing it mid-generation
   means reallocation and copying in the hot path.
-- **Layout matters**: store K as `[layer][head][seq][head_dim]` so attention
+- **Layout matters**: store K as `[layer][kv_head][seq][head_dim]` so attention
   reads contiguously along the sequence axis.
 - **Correctness test**: generating with the cache must produce *identical*
   tokens to generating without it (recomputing every step). Any divergence is a

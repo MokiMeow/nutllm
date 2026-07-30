@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
     if (!run_correctness() || !run_ops_selftests() ||
         !run_transformer_selftests() || !run_loader_selftests() ||
         !run_kvcache_selftests() || !run_quant_selftests() ||
-        !run_threading_selftests()) {
+        !run_threading_selftests() || !run_llama2_selftests()) {
         std::fprintf(stderr, "\nFAIL: a kernel disagrees with the reference\n");
         return 1;
     }

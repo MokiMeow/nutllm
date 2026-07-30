@@ -398,15 +398,43 @@ const std::string &SafeTensorFile::metadata(const std::string &name) const {
     return found->second;
 }
 
-ModelWeights::ModelWeights(const ModelConfig &model_config)
+ModelWeights::ModelWeights(const ModelConfig &model_config,
+                           bool allocate_lm_head)
     : config(model_config),
       embeddings(config.vocab_size, config.dim),
       final_norm(config.dim, 1.0f),
-      lm_head(config.vocab_size, config.dim) {
+      lm_head(allocate_lm_head ? Matrix(config.vocab_size, config.dim)
+                               : Matrix()) {
     config.validate();
     layers.reserve(config.layers);
     for (size_t layer = 0; layer < config.layers; layer++)
         layers.emplace_back(config);
+}
+
+size_t ModelWeights::storage_bytes() const {
+    size_t elements = 0;
+    const auto add = [&elements](size_t value) {
+        if (value > std::numeric_limits<size_t>::max() - elements)
+            throw std::overflow_error("model: storage size overflow");
+        elements += value;
+    };
+    add(embeddings.size());
+    add(final_norm.size());
+    add(lm_head.size());
+    for (const LayerWeights &layer : layers) {
+        add(layer.query.size());
+        add(layer.key.size());
+        add(layer.value.size());
+        add(layer.output.size());
+        add(layer.gate.size());
+        add(layer.up.size());
+        add(layer.down.size());
+        add(layer.attention_norm.size());
+        add(layer.ffn_norm.size());
+    }
+    if (elements > std::numeric_limits<size_t>::max() / sizeof(float))
+        throw std::overflow_error("model: storage size overflow");
+    return elements * sizeof(float);
 }
 
 ModelWeights load_model(const std::string &path) {

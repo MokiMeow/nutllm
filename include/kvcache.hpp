@@ -31,6 +31,8 @@ private:
 };
 
 Matrix prefill_tokens(const ModelWeights &model,
-                      const std::vector<int> &tokens, KVCache &cache);
+                      const std::vector<int> &tokens, KVCache &cache,
+                      size_t thread_count = 1);
 std::vector<float> decode_token(const ModelWeights &model, int token,
-                                KVCache &cache);
+                                KVCache &cache,
+                                size_t thread_count = 1);

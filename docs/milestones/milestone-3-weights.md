@@ -36,7 +36,7 @@ naming and layout conventions, and sampling.
 
 ## Definition of Done
 
-- [ ] A real small open-weights model (1B–3B) loads and generates **coherent
+- [x] A real small open-weights model (1B–3B) loads and generates **coherent
       English** from a prompt.
 - [x] Greedy sampling is deterministic: the same prompt gives the same output
       every run.
@@ -45,11 +45,13 @@ naming and layout conventions, and sampling.
 - [x] A malformed/truncated file is rejected with a clear error, not a crash.
 - [x] `make all` warning-free; `make test` green.
 
-Implementation status: the complete synthetic-checkpoint path is proven and
-CI-gated. The real-model item remains open because stock checkpoints also need
-F16/BF16, external architecture configuration, and their tokenizer format; see
-[docs/03-model-formats.md](../03-model-formats.md). No coherent-text claim is
-made without that evidence.
+Implementation status: complete. In addition to the CI-gated safetensors path,
+the dependency-free llama2.c adapter loads configuration, grouped-query
+attention weights, tied or separate classifiers, and the binary tokenizer.
+TinyLlama 1.1B Chat v0.2 generated the reference-matching greedy prefix
+`What is the capital of France?` from `Once upon a time`; artifact hashes and
+the reproduction command are recorded in
+[docs/03-model-formats.md](../03-model-formats.md).
 
 ## Notes
 
