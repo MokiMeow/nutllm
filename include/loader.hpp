@@ -49,8 +49,14 @@ struct ModelWeights {
     std::vector<LayerWeights> layers;
     std::vector<float> final_norm;
     Matrix lm_head;
+    bool tied_embeddings = false;
 
-    explicit ModelWeights(const ModelConfig &model_config);
+    explicit ModelWeights(const ModelConfig &model_config,
+                          bool allocate_lm_head = true);
+    const Matrix &output_weights() const {
+        return tied_embeddings ? embeddings : lm_head;
+    }
+    size_t storage_bytes() const;
 };
 
 ModelWeights load_model(const std::string &path);

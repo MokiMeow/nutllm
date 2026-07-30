@@ -14,8 +14,13 @@ struct ModelConfig {
     size_t vocab_size = 0;
     size_t max_seq = 0;
     size_t eos_token = 0;
+    size_t kv_heads = 0;
 
     void validate() const;
+    size_t effective_kv_heads() const {
+        return kv_heads == 0 ? heads : kv_heads;
+    }
+    size_t kv_dim() const { return effective_kv_heads() * head_dim; }
 };
 
 struct LayerWeights {

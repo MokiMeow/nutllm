@@ -8,3 +8,4 @@ void run_kvcache_benchmark();
 bool run_quant_selftests();
 bool run_threading_selftests();
 void run_threading_benchmark();
+bool run_llama2_selftests();

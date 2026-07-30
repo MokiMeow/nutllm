@@ -20,9 +20,9 @@ size_t checked_elements(const ModelConfig &config) {
     if (config.layers >
         std::numeric_limits<size_t>::max() / config.max_seq ||
         config.layers * config.max_seq >
-            std::numeric_limits<size_t>::max() / config.dim)
+            std::numeric_limits<size_t>::max() / config.kv_dim())
         throw std::length_error("kv cache: dimensions overflow");
-    return config.layers * config.max_seq * config.dim;
+    return config.layers * config.max_seq * config.kv_dim();
 }
 
 void normalize_rows(const Matrix &input, const std::vector<float> &weights,
@@ -40,13 +40,21 @@ void copy_embedding(const ModelWeights &model, int token, float *output) {
                 model.config.dim * sizeof(float));
 }
 
-void project_row(const float *input, const Matrix &weights, float *output) {
-    std::fill(output, output + weights.cols(), 0.0f);
-    for (size_t row = 0; row < weights.rows(); row++) {
-        const float value = input[row];
-        const float *weight_row = weights.data() + row * weights.cols();
-        for (size_t column = 0; column < weights.cols(); column++)
-            output[column] += value * weight_row[column];
+void project_row(const float *input, const Matrix &weights, float *output,
+                 size_t thread_count) {
+    linear_threaded(input, weights, output, thread_count);
+}
+
+void rotate_vector(float *values, size_t dimensions, size_t position) {
+    for (size_t pair = 0; pair < dimensions; pair += 2) {
+        const double frequency =
+            std::pow(10000.0, -double(pair) / double(dimensions));
+        const float cosine = float(std::cos(double(position) * frequency));
+        const float sine = float(std::sin(double(position) * frequency));
+        const float even = values[pair];
+        const float odd = values[pair + 1];
+        values[pair] = even * cosine - odd * sine;
+        values[pair + 1] = even * sine + odd * cosine;
     }
 }
 
@@ -54,52 +62,55 @@ void cache_layer_prefill(const Matrix &input, const LayerWeights &weights,
                          const ModelConfig &config, size_t layer,
                          KVCache &cache) {
     Matrix normalized(input.rows(), config.dim);
-    Matrix query(input.rows(), config.dim);
-    Matrix key(input.rows(), config.dim);
-    Matrix value(input.rows(), config.dim);
+    Matrix key(input.rows(), config.kv_dim());
+    Matrix value(input.rows(), config.kv_dim());
     normalize_rows(input, weights.attention_norm, normalized);
-    matmul_simd(normalized, weights.query, query);
     matmul_simd(normalized, weights.key, key);
     matmul_simd(normalized, weights.value, value);
     for (size_t position = 0; position < input.rows(); position++) {
-        for (size_t head = 0; head < config.heads; head++) {
+        for (size_t head = 0; head < config.effective_kv_heads(); head++) {
             const size_t offset =
-                position * config.dim + head * config.head_dim;
-            rope(query.data() + offset, key.data() + offset, 1,
-                 config.head_dim, position);
+                position * config.kv_dim() + head * config.head_dim;
+            rotate_vector(key.data() + offset, config.head_dim, position);
         }
         cache.store(layer, position,
-                    key.data() + position * config.dim,
-                    value.data() + position * config.dim);
+                    key.data() + position * config.kv_dim(),
+                    value.data() + position * config.kv_dim());
     }
 }
 
 void attention_step(const float *normalized, const LayerWeights &weights,
                     const ModelConfig &config, size_t layer, size_t position,
-                    KVCache &cache, float *output) {
+                    KVCache &cache, float *output, size_t thread_count) {
     std::vector<float> query(config.dim);
-    std::vector<float> key(config.dim);
-    std::vector<float> value(config.dim);
+    std::vector<float> key(config.kv_dim());
+    std::vector<float> value(config.kv_dim());
     std::vector<float> context(config.dim, 0.0f);
-    project_row(normalized, weights.query, query.data());
-    project_row(normalized, weights.key, key.data());
-    project_row(normalized, weights.value, value.data());
+    project_row(normalized, weights.query, query.data(), thread_count);
+    project_row(normalized, weights.key, key.data(), thread_count);
+    project_row(normalized, weights.value, value.data(), thread_count);
     for (size_t head = 0; head < config.heads; head++) {
         const size_t offset = head * config.head_dim;
-        rope(query.data() + offset, key.data() + offset, 1,
-             config.head_dim, position);
+        rotate_vector(query.data() + offset, config.head_dim, position);
+    }
+    for (size_t head = 0; head < config.effective_kv_heads(); head++) {
+        const size_t offset = head * config.head_dim;
+        rotate_vector(key.data() + offset, config.head_dim, position);
     }
     cache.store(layer, position, key.data(), value.data());
 
     const float scale = 1.0f / std::sqrt(float(config.head_dim));
     std::vector<float> scores(position + 1);
+    const size_t query_heads_per_kv =
+        config.heads / config.effective_kv_heads();
     for (size_t head = 0; head < config.heads; head++) {
+        const size_t kv_head = head / query_heads_per_kv;
         const size_t head_offset = head * config.head_dim;
         float maximum = -std::numeric_limits<float>::infinity();
         for (size_t cached_position = 0; cached_position <= position;
              cached_position++) {
             const float *cached_key =
-                cache.key(layer, head, cached_position);
+                cache.key(layer, kv_head, cached_position);
             double dot = 0.0;
             for (size_t dimension = 0; dimension < config.head_dim;
                  dimension++)
@@ -119,26 +130,27 @@ void attention_step(const float *normalized, const LayerWeights &weights,
             for (size_t cached_position = 0; cached_position <= position;
                  cached_position++) {
                 const float *cached_value =
-                    cache.value(layer, head, cached_position);
+                    cache.value(layer, kv_head, cached_position);
                 sum += double(scores[cached_position] / float(total)) *
                        double(cached_value[dimension]);
             }
             context[head_offset + dimension] = float(sum);
         }
     }
-    project_row(context.data(), weights.output, output);
+    project_row(context.data(), weights.output, output, thread_count);
 }
 
 void decoder_layer_step(std::vector<float> &hidden,
                         const LayerWeights &weights,
                         const ModelConfig &config, size_t layer,
-                        size_t position, KVCache &cache) {
+                        size_t position, KVCache &cache,
+                        size_t thread_count) {
     std::vector<float> normalized(config.dim);
     std::vector<float> attention(config.dim);
     rmsnorm(hidden.data(), weights.attention_norm.data(), normalized.data(),
             config.dim, 1e-5f);
     attention_step(normalized.data(), weights, config, layer, position,
-                   cache, attention.data());
+                   cache, attention.data(), thread_count);
     add_inplace(hidden.data(), attention.data(), config.dim);
 
     rmsnorm(hidden.data(), weights.ffn_norm.data(), normalized.data(),
@@ -146,12 +158,13 @@ void decoder_layer_step(std::vector<float> &hidden,
     std::vector<float> gate(config.ffn_dim);
     std::vector<float> up(config.ffn_dim);
     std::vector<float> activated(config.ffn_dim);
-    project_row(normalized.data(), weights.gate, gate.data());
-    project_row(normalized.data(), weights.up, up.data());
+    project_row(normalized.data(), weights.gate, gate.data(), thread_count);
+    project_row(normalized.data(), weights.up, up.data(), thread_count);
     for (size_t index = 0; index < config.ffn_dim; index++)
         activated[index] = silu(gate[index]) * up[index];
     std::vector<float> feed_forward(config.dim);
-    project_row(activated.data(), weights.down, feed_forward.data());
+    project_row(activated.data(), weights.down, feed_forward.data(),
+                thread_count);
     add_inplace(hidden.data(), feed_forward.data(), config.dim);
 }
 
@@ -176,14 +189,18 @@ bool KVCache::compatible(const ModelConfig &config) const {
            config_.ffn_dim == config.ffn_dim &&
            config_.vocab_size == config.vocab_size &&
            config_.max_seq == config.max_seq &&
-           config_.eos_token == config.eos_token;
+           config_.eos_token == config.eos_token &&
+           config_.effective_kv_heads() == config.effective_kv_heads();
 }
 
 size_t KVCache::offset(size_t layer, size_t head, size_t position) const {
-    if (layer >= config_.layers || head >= config_.heads ||
+    if (layer >= config_.layers ||
+        head >= config_.effective_kv_heads() ||
         position >= config_.max_seq)
         throw std::out_of_range("kv cache: index out of range");
-    return ((layer * config_.heads + head) * config_.max_seq + position) *
+    return ((layer * config_.effective_kv_heads() + head) *
+                config_.max_seq +
+            position) *
            config_.head_dim;
 }
 
@@ -200,7 +217,7 @@ void KVCache::store(size_t layer, size_t position, const float *key_data,
                     const float *value_data) {
     if (key_data == nullptr || value_data == nullptr)
         throw std::invalid_argument("kv cache: null source");
-    for (size_t head = 0; head < config_.heads; head++) {
+    for (size_t head = 0; head < config_.effective_kv_heads(); head++) {
         const size_t destination = offset(layer, head, position);
         std::memcpy(keys_.data() + destination,
                     key_data + head * config_.head_dim,
@@ -218,7 +235,8 @@ void KVCache::set_length(size_t length) {
 }
 
 Matrix prefill_tokens(const ModelWeights &model,
-                      const std::vector<int> &tokens, KVCache &cache) {
+                      const std::vector<int> &tokens, KVCache &cache,
+                      size_t thread_count) {
     model.config.validate();
     if (!cache.compatible(model.config))
         throw std::invalid_argument("kv cache: model configuration mismatch");
@@ -226,6 +244,8 @@ Matrix prefill_tokens(const ModelWeights &model,
         throw std::invalid_argument("kv cache: layer count mismatch");
     if (tokens.empty() || tokens.size() > model.config.max_seq)
         throw std::invalid_argument("kv cache: invalid prefill length");
+    if (thread_count == 0)
+        throw std::invalid_argument("kv cache: zero threads");
     cache.reset();
     Matrix current(tokens.size(), model.config.dim);
     for (size_t row = 0; row < tokens.size(); row++)
@@ -243,12 +263,14 @@ Matrix prefill_tokens(const ModelWeights &model,
 }
 
 std::vector<float> decode_token(const ModelWeights &model, int token,
-                                KVCache &cache) {
+                                KVCache &cache, size_t thread_count) {
     model.config.validate();
     if (!cache.compatible(model.config))
         throw std::invalid_argument("kv cache: model configuration mismatch");
     if (model.layers.size() != model.config.layers)
         throw std::invalid_argument("kv cache: layer count mismatch");
+    if (thread_count == 0)
+        throw std::invalid_argument("kv cache: zero threads");
     if (cache.length() >= model.config.max_seq)
         throw std::length_error("kv cache: context is full");
     const size_t position = cache.length();
@@ -256,7 +278,7 @@ std::vector<float> decode_token(const ModelWeights &model, int token,
     copy_embedding(model, token, hidden.data());
     for (size_t layer = 0; layer < model.config.layers; layer++)
         decoder_layer_step(hidden, model.layers[layer], model.config, layer,
-                           position, cache);
+                           position, cache, thread_count);
     cache.set_length(position + 1);
     return hidden;
 }

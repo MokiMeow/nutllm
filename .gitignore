@@ -10,6 +10,8 @@ verify.sh
 *.safetensors
 !tests/fixtures/tiny.safetensors
 *.bin
+!tests/fixtures/tiny-llama2.bin
+!tests/fixtures/tiny-llama2-shared.bin
 models/
 
 # Editor / OS cruft

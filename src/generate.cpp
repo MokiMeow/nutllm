@@ -5,6 +5,7 @@
  * differential reference. */
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -14,7 +15,9 @@
 
 #include "generate.hpp"
 #include "kvcache.hpp"
+#include "matmul.hpp"
 #include "ops.hpp"
+#include "quant_model.hpp"
 
 namespace {
 
@@ -90,7 +93,7 @@ void logits_for_prefix(const ModelWeights &model,
     rmsnorm(hidden.data() + (tokens.size() - 1) * model.config.dim,
             model.final_norm.data(), normalized.data(), model.config.dim,
             1e-5f);
-    matvec(model.lm_head, normalized.data(), logits.data());
+    matvec(model.output_weights(), normalized.data(), logits.data());
 }
 
 } // namespace
@@ -101,6 +104,8 @@ std::vector<int> generate_tokens(const ModelWeights &model,
     model.config.validate();
     if (prompt.empty())
         throw std::invalid_argument("generation: prompt cannot be empty");
+    if (sampling.threads == 0)
+        throw std::invalid_argument("generation: zero threads");
     if (prompt.size() > model.config.max_seq)
         throw std::length_error("generation: prompt exceeds context");
 
@@ -122,13 +127,19 @@ std::vector<int> generate_tokens(const ModelWeights &model,
 
 std::vector<int> generate_tokens_cached(const ModelWeights &model,
                                         const std::vector<int> &prompt,
-                                        const SamplingConfig &sampling) {
+                                        const SamplingConfig &sampling,
+                                        GenerationStats *stats) {
     model.config.validate();
     if (prompt.empty() || prompt.size() > model.config.max_seq)
         throw std::invalid_argument("generation: invalid prompt length");
+    if (sampling.threads == 0)
+        throw std::invalid_argument("generation: zero threads");
 
     KVCache cache(model.config);
-    Matrix hidden = prefill_tokens(model, prompt, cache);
+    const auto prefill_start = std::chrono::steady_clock::now();
+    Matrix hidden = prefill_tokens(model, prompt, cache, sampling.threads);
+    const double prefill_seconds = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - prefill_start).count();
     std::vector<float> last(model.config.dim);
     std::memcpy(last.data(),
                 hidden.data() + (hidden.rows() - 1) * model.config.dim,
@@ -137,16 +148,69 @@ std::vector<int> generate_tokens_cached(const ModelWeights &model,
     std::vector<float> logits(model.config.vocab_size);
     std::vector<int> generated;
     std::mt19937 rng(sampling.seed);
+    const auto decode_start = std::chrono::steady_clock::now();
     while (generated.size() < sampling.max_tokens &&
            cache.length() < cache.capacity()) {
         rmsnorm(last.data(), model.final_norm.data(), normalized.data(),
                 model.config.dim, 1e-5f);
-        matvec(model.lm_head, normalized.data(), logits.data());
+        matvec_threaded(model.output_weights(), normalized.data(),
+                        logits.data(), sampling.threads);
         const size_t token = choose_token(logits, sampling, rng);
         if (token == model.config.eos_token)
             break;
         generated.push_back(int(token));
-        last = decode_token(model, int(token), cache);
+        last = decode_token(model, int(token), cache, sampling.threads);
+    }
+    if (stats != nullptr) {
+        stats->prefill_tokens = prompt.size();
+        stats->generated_tokens = generated.size();
+        stats->prefill_seconds = prefill_seconds;
+        stats->decode_seconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - decode_start).count();
+    }
+    return generated;
+}
+
+std::vector<int> generate_tokens_cached(const QuantizedModelWeights &model,
+                                        const std::vector<int> &prompt,
+                                        const SamplingConfig &sampling,
+                                        GenerationStats *stats) {
+    model.config.validate();
+    if (prompt.empty() || prompt.size() > model.config.max_seq)
+        throw std::invalid_argument("generation: invalid prompt length");
+    if (sampling.threads == 0)
+        throw std::invalid_argument("generation: zero threads");
+
+    KVCache cache(model.config);
+    const auto prefill_start = std::chrono::steady_clock::now();
+    std::vector<float> last =
+        prefill_quantized(model, prompt, cache, sampling.threads);
+    const double prefill_seconds = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - prefill_start).count();
+    std::vector<float> normalized(model.config.dim);
+    std::vector<float> logits(model.config.vocab_size);
+    std::vector<int> generated;
+    std::mt19937 rng(sampling.seed);
+    const auto decode_start = std::chrono::steady_clock::now();
+    while (generated.size() < sampling.max_tokens &&
+           cache.length() < cache.capacity()) {
+        rmsnorm(last.data(), model.final_norm.data(), normalized.data(),
+                model.config.dim, 1e-5f);
+        matvec_threaded(model.output_weights(), normalized.data(),
+                        logits.data(), sampling.threads);
+        const size_t token = choose_token(logits, sampling, rng);
+        if (token == model.config.eos_token)
+            break;
+        generated.push_back(int(token));
+        last = decode_quantized_token(model, int(token), cache,
+                                      sampling.threads);
+    }
+    if (stats != nullptr) {
+        stats->prefill_tokens = prompt.size();
+        stats->generated_tokens = generated.size();
+        stats->prefill_seconds = prefill_seconds;
+        stats->decode_seconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - decode_start).count();
     }
     return generated;
 }
