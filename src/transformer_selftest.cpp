@@ -178,6 +178,19 @@ bool tokenizer_round_trips() {
     const std::vector<int> encoded = tokenizer.encode(text);
     bool passed = tokenizer.decode(encoded) == text &&
                   encoded.size() < text.size();
+    const std::vector<int> repeated = tokenizer.encode("hellohello");
+    passed = passed &&
+             repeated == std::vector<int>({259, 259}) &&
+             tokenizer.decode(repeated) == "hellohello";
+    const std::string binary("a\0b", 3);
+    passed = passed &&
+             tokenizer.decode(tokenizer.encode(binary)) == binary;
+    try {
+        (void)tokenizer.decode({-1});
+        passed = false;
+    } catch (const std::out_of_range &) {
+        // Preserve the public contract for invalid token ids.
+    }
 
     std::vector<std::string> vocabulary;
     vocabulary.reserve(260);
@@ -203,6 +216,18 @@ bool tokenizer_round_trips() {
             Tokenizer::load("build/tokenizer-test.vocab",
                             "build/tokenizer-test.merges");
         passed = passed && loaded.decode(loaded.encode(text)) == text;
+        // Malformed vocab lines must not silently accept extra columns.
+        {
+            std::ofstream vocab_file("build/tokenizer-test.vocab");
+            vocab_file << "0 61 extra-column\n";
+        }
+        try {
+            (void)Tokenizer::load("build/tokenizer-test.vocab",
+                                  "build/tokenizer-test.merges");
+            passed = false;
+        } catch (const std::runtime_error &) {
+            // Expected: exactly an id and one hex token per line.
+        }
     } catch (const std::exception &) {
         passed = false;
     }
