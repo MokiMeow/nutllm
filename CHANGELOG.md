@@ -13,6 +13,10 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Avoid temporary string-pair allocation on every BPE merge lookup with
+  transparent string-view keys; preserve rank and left-to-right behavior.
+- Reserve decoded token output once and reject malformed vocabulary rows with
+  extra columns; expand byte-level and merged-token regression coverage.
 - Recorded the negative packing result at 512 and 1024 and retained the faster
   register-blocked SIMD production kernel.
 - Expanded the README with architecture, requirements, limitations, and a

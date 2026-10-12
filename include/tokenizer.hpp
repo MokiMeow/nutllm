@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <string>
 #include <utility>
@@ -20,5 +21,8 @@ public:
 private:
     std::vector<std::string> id_to_token_;
     std::map<std::string, int> token_to_id_;
-    std::map<std::pair<std::string, std::string>, size_t> merge_rank_;
+    // Transparent string-key lookup avoids allocating/copying a pair of
+    // adjacent symbols on every BPE merge-rank probe.
+    std::map<std::string, std::map<std::string, size_t, std::less<>>,
+             std::less<>> merge_rank_;
 };
