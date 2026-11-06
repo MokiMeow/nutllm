@@ -25,6 +25,7 @@ public:
     SafeTensorFile(const SafeTensorFile &) = delete;
     SafeTensorFile &operator=(const SafeTensorFile &) = delete;
 
+    size_t tensor_count() const { return tensors_.size(); }
     TensorView tensor(const std::string &name) const;
     const std::string &metadata(const std::string &name) const;
 

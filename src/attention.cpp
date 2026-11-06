@@ -18,6 +18,7 @@ void ModelConfig::validate() const {
         ffn_dim == 0 || vocab_size == 0 || max_seq == 0 ||
         heads > std::numeric_limits<size_t>::max() / head_dim ||
         heads * head_dim != dim || head_dim % 2 != 0 ||
+        vocab_size > size_t(std::numeric_limits<int>::max()) ||
         eos_token >= vocab_size || configured_kv_heads == 0 ||
         configured_kv_heads > heads ||
         heads % configured_kv_heads != 0 ||

@@ -6,12 +6,39 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
-    # nutllm uses x86-64 AVX2/FMA intrinsics, so the runner must be x86-64.
+    name: ${{ matrix.name }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: optimized-avx2
+            build: build/avx2
+            arch: "-mavx2 -mfma"
+            sanitize: "0"
+          - name: optimized-scalar
+            build: build/scalar
+            arch: ""
+            sanitize: "0"
+          - name: sanitizers
+            build: build/sanitize
+            arch: ""
+            sanitize: "1"
+    env:
+      BUILD: ${{ matrix.build }}
+      ARCH: ${{ matrix.arch }}
+      SANITIZE: ${{ matrix.sanitize }}
+    # The AVX2/FMA matrix entry requires an x86-64 runner.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Install toolchain
         run: sudo apt-get update && sudo apt-get install -y g++ make
@@ -19,7 +46,7 @@ jobs:
       - name: Build (portable flags; warnings are failures)
         run: |
           make clean
-          make all ARCH="-mavx2 -mfma" 2>&1 | tee build.log
+          make all 2>&1 | tee build.log
           ! grep -qi warning build.log
 
       - name: Correctness gate (every kernel vs the reference)
@@ -29,19 +56,19 @@ jobs:
         run: |
           python3 scripts/make_tiny_checkpoint.py
           git diff --exit-code -- tests/fixtures
-          output=$(./build/nutllm \
+          output=$("./$BUILD/nutllm" \
             --model tests/fixtures/tiny.safetensors \
             --vocab tests/fixtures/tiny.vocab \
             --merges tests/fixtures/tiny.merges \
             --prompt H --max-tokens 8)
           test "$output" = "Hi!"
-          output=$(./build/nutllm \
+          output=$("./$BUILD/nutllm" \
             --model tests/fixtures/tiny-llama2.bin \
             --tokenizer tests/fixtures/tiny-llama2.tokenizer \
             --prompt H --max-tokens 8)
           test "$output" = "Hi!"
           for quant in int8 int4; do
-            output=$(./build/nutllm \
+            output=$("./$BUILD/nutllm" \
               --model tests/fixtures/tiny-llama2.bin \
               --tokenizer tests/fixtures/tiny-llama2.tokenizer \
               --prompt H --max-tokens 8 --quant "$quant" --threads 4)
@@ -49,4 +76,5 @@ jobs:
           done
 
       - name: Benchmark (informational — runner speed is not a gate)
+        if: matrix.name == 'optimized-avx2'
         run: make run

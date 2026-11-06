@@ -3,7 +3,11 @@
 nutllm milestone 3 reads the safetensors container directly. The file is
 opened read-only and memory-mapped; tensor views point into that mapping.
 Malformed lengths, integer overflow, unsupported dtypes, out-of-range offsets,
-missing tensors, and incorrect shapes are rejected before inference.
+missing tensors, and incorrect shapes are rejected before inference. The complete
+expected tensor layout is checked before allocating model weights. Payload
+ranges must cover the file exactly once, without overlap or gaps. Headers are
+limited to 100 MB and JSON nesting to 32 levels. See the
+[loader review](11-loader-hardening.md) for rationale, tests and trust limits.
 
 ## Supported safetensors subset
 

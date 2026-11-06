@@ -1,6 +1,7 @@
 /* nutllm milestone 0 — verify and benchmark the compute core.
  *
  *   nutllm            run correctness checks, then benchmark at N=512
+ *   nutllm --test     run all correctness checks without benchmarks
  *   nutllm 1024       benchmark at a chosen square size
  *
  * Correctness first: every optimised kernel must agree with the naive one.
@@ -130,11 +131,12 @@ int main(int argc, char **argv) {
     if (argc > 1 && std::string(argv[1]) == "--model")
         return run_model_cli(argc, argv);
 
+    const bool test_only = argc > 1 && std::string(argv[1]) == "--test";
     size_t n = 512;
-    if (argc > 1)
+    if (argc > 1 && !test_only)
         n = static_cast<size_t>(std::strtoul(argv[1], nullptr, 10));
-    if (n == 0) {
-        std::fprintf(stderr, "usage: nutllm [matrix-size]\n");
+    if (n == 0 || (test_only && argc != 2)) {
+        std::fprintf(stderr, "usage: nutllm [matrix-size | --test]\n");
         return 2;
     }
 
@@ -143,11 +145,15 @@ int main(int argc, char **argv) {
 
     if (!run_correctness() || !run_ops_selftests() ||
         !run_transformer_selftests() || !run_loader_selftests() ||
+        !run_loader_validation_selftests() ||
         !run_kvcache_selftests() || !run_quant_selftests() ||
         !run_threading_selftests() || !run_llama2_selftests()) {
         std::fprintf(stderr, "\nFAIL: a kernel disagrees with the reference\n");
         return 1;
     }
+
+    if (test_only)
+        return 0;
 
     run_kvcache_benchmark();
     run_threading_benchmark();

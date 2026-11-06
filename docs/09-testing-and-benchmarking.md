@@ -20,6 +20,32 @@ Rules:
 - **Correctness runs before timing**, in the same binary, so an optimisation
   that breaks accuracy can never be reported as a speedup.
 
+## Portable and sanitizer checks
+
+`make test` invokes `nutllm --test`: all correctness selftests run without
+the KV-cache, threading, or matrix benchmarks. Default execution and numeric
+matrix-size arguments still run correctness before timing.
+
+Use separate build directories when changing architecture or compiler flags:
+
+```bash
+make BUILD=build/avx2 ARCH="-mavx2 -mfma" test
+make BUILD=build/scalar ARCH="" test
+make sanitize
+```
+
+The sanitizer target builds scalar code in `build/sanitize` with AddressSanitizer
+and UndefinedBehaviorSanitizer, debug symbols, frame pointers, and recovery
+disabled so sanitizer findings fail the gate. It does not overwrite optimized
+objects. Header dependencies are generated with `-MMD -MP`, so editing a header
+rebuilds affected objects automatically. Changing flags within the same build
+directory still requires cleaning that directory.
+
+CI runs optimized AVX2/FMA, optimized scalar, and sanitizer builds. Each runs the
+correctness gate and tiny synthetic-checkpoint generation smoke tests (including
+INT8/INT4 with four threads). Only the optimized AVX2/FMA job runs informational
+benchmarks. CI does not download model weights.
+
 ## Benchmarking honestly
 
 The rules this project holds itself to:

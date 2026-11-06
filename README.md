@@ -183,7 +183,8 @@ Start with the [overview](docs/00-overview.md) and
 [model formats](docs/03-model-formats.md), [kernels](docs/05-kernels.md),
 [the transformer](docs/06-transformer.md), [KV caching](docs/07-kv-cache.md),
 [quantization](docs/08-quantisation.md), and
-[testing and benchmarking](docs/09-testing-and-benchmarking.md).
+[testing and benchmarking](docs/09-testing-and-benchmarking.md), and the
+[loader validation review](docs/11-loader-hardening.md).
 
 ## License
 

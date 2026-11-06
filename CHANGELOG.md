@@ -8,8 +8,20 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Malformed checkpoint/tokenizer regression fixtures, Unicode parser coverage,
+  and a documented loader trust-boundary review grounded in upstream formats.
+- Correctness-only `--test`, automatic header dependencies, an isolated
+  `make sanitize` target, and scalar/AVX2/ASan+UBSan CI coverage.
 - An independently testable packed-panel GEMM experiment with reusable
   thread-local A/B scratch panels and AVX2/FMA plus scalar tail handling.
+
+### Fixed
+
+- Reject oversized/deep or invalid safetensors JSON and overlapping, gapped or
+  trailing tensor payloads; support valid Unicode escapes and UTF-8 names.
+- Validate all model tensor shapes before allocation, and bound tokenizer
+  vocabulary/string allocations by actual file bytes. Reject duplicate tokens
+  and vocabularies that cannot represent the required token IDs.
 
 ### Changed
 

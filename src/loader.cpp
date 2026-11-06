@@ -4,6 +4,7 @@
  * ModelWeights then transposes external [out, in] matrices into nutllm's
  * internal [in, out] layout, making the conversion explicit and testable. */
 
+#include <algorithm>
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -37,7 +38,7 @@ public:
     JsonParser(const char *data, size_t size) : data_(data), size_(size) {}
 
     Json parse() {
-        Json value = parse_value();
+        Json value = parse_value(0);
         whitespace();
         if (position_ != size_)
             fail("trailing content");
@@ -63,7 +64,10 @@ private:
         return data_[position_++];
     }
 
-    Json parse_value() {
+    Json parse_value(size_t depth) {
+        // Bound untrusted extra fields before recursion consumes the stack.
+        if (depth > 32)
+            fail("nesting limit exceeded");
         whitespace();
         if (position_ == size_)
             fail("missing value");
@@ -74,12 +78,73 @@ private:
             return value;
         }
         if (data_[position_] == '{')
-            return parse_object();
+            return parse_object(depth);
         if (data_[position_] == '[')
-            return parse_array();
+            return parse_array(depth);
         if (data_[position_] >= '0' && data_[position_] <= '9')
             return parse_number();
         fail("unsupported value");
+    }
+
+    uint32_t unicode_unit() {
+        uint32_t value = 0;
+        for (size_t digit = 0; digit < 4; digit++) {
+            const char character = take();
+            unsigned hex = 0;
+            if (character >= '0' && character <= '9')
+                hex = unsigned(character - '0');
+            else if (character >= 'a' && character <= 'f')
+                hex = unsigned(character - 'a') + 10;
+            else if (character >= 'A' && character <= 'F')
+                hex = unsigned(character - 'A') + 10;
+            else
+                fail("invalid unicode escape");
+            value = (value << 4) | hex;
+        }
+        return value;
+    }
+
+    uint32_t utf8_codepoint(unsigned char first) {
+        size_t extra = 0;
+        uint32_t value = 0;
+        uint32_t minimum = 0;
+        if (first >= 0xc2 && first <= 0xdf) {
+            extra = 1; value = first & 0x1f; minimum = 0x80;
+        } else if (first >= 0xe0 && first <= 0xef) {
+            extra = 2; value = first & 0x0f; minimum = 0x800;
+        } else if (first >= 0xf0 && first <= 0xf4) {
+            extra = 3; value = first & 0x07; minimum = 0x10000;
+        } else {
+            fail("invalid UTF-8");
+        }
+        for (size_t byte = 0; byte < extra; byte++) {
+            const unsigned char next = static_cast<unsigned char>(take());
+            if ((next & 0xc0) != 0x80)
+                fail("invalid UTF-8");
+            value = (value << 6) | (next & 0x3f);
+        }
+        if (value < minimum || value > 0x10ffff ||
+            (value >= 0xd800 && value <= 0xdfff))
+            fail("invalid UTF-8");
+        return value;
+    }
+
+    static void append_utf8(std::string &text, uint32_t value) {
+        if (value < 0x80) {
+            text.push_back(char(value));
+        } else if (value < 0x800) {
+            text.push_back(char(0xc0 | (value >> 6)));
+            text.push_back(char(0x80 | (value & 0x3f)));
+        } else if (value < 0x10000) {
+            text.push_back(char(0xe0 | (value >> 12)));
+            text.push_back(char(0x80 | ((value >> 6) & 0x3f)));
+            text.push_back(char(0x80 | (value & 0x3f)));
+        } else {
+            text.push_back(char(0xf0 | (value >> 18)));
+            text.push_back(char(0x80 | ((value >> 12) & 0x3f)));
+            text.push_back(char(0x80 | ((value >> 6) & 0x3f)));
+            text.push_back(char(0x80 | (value & 0x3f)));
+        }
     }
 
     std::string parse_string() {
@@ -93,7 +158,11 @@ private:
             if (static_cast<unsigned char>(value) < 0x20)
                 fail("control character in string");
             if (value != '\\') {
-                result.push_back(value);
+                const unsigned char byte = static_cast<unsigned char>(value);
+                if (byte < 0x80)
+                    result.push_back(value);
+                else
+                    append_utf8(result, utf8_codepoint(byte));
                 continue;
             }
             const char escape = take();
@@ -106,6 +175,22 @@ private:
             case 'n': result.push_back('\n'); break;
             case 'r': result.push_back('\r'); break;
             case 't': result.push_back('\t'); break;
+            case 'u': {
+                uint32_t codepoint = unicode_unit();
+                if (codepoint >= 0xd800 && codepoint <= 0xdbff) {
+                    if (take() != '\\' || take() != 'u')
+                        fail("missing low surrogate");
+                    const uint32_t low = unicode_unit();
+                    if (low < 0xdc00 || low > 0xdfff)
+                        fail("invalid low surrogate");
+                    codepoint = 0x10000 + ((codepoint - 0xd800) << 10) +
+                                low - 0xdc00;
+                } else if (codepoint >= 0xdc00 && codepoint <= 0xdfff) {
+                    fail("unpaired low surrogate");
+                }
+                append_utf8(result, codepoint);
+                break;
+            }
             default: fail("unsupported string escape");
             }
         }
@@ -115,6 +200,9 @@ private:
     Json parse_number() {
         Json value;
         value.kind = Json::Kind::number;
+        if (data_[position_] == '0' && position_ + 1 < size_ &&
+            data_[position_ + 1] >= '0' && data_[position_ + 1] <= '9')
+            fail("leading zero in number");
         while (position_ < size_ && data_[position_] >= '0' &&
                data_[position_] <= '9') {
             const unsigned digit = unsigned(data_[position_] - '0');
@@ -127,7 +215,7 @@ private:
         return value;
     }
 
-    Json parse_array() {
+    Json parse_array(size_t depth) {
         Json value;
         value.kind = Json::Kind::array;
         take();
@@ -137,7 +225,7 @@ private:
             return value;
         }
         for (;;) {
-            value.array.push_back(parse_value());
+            value.array.push_back(parse_value(depth + 1));
             whitespace();
             const char delimiter = take();
             if (delimiter == ']')
@@ -147,7 +235,7 @@ private:
         }
     }
 
-    Json parse_object() {
+    Json parse_object(size_t depth) {
         Json value;
         value.kind = Json::Kind::object;
         take();
@@ -164,7 +252,7 @@ private:
             whitespace();
             if (take() != ':')
                 fail("expected colon");
-            if (!value.object.emplace(std::move(key), parse_value()).second)
+            if (!value.object.emplace(std::move(key), parse_value(depth + 1)).second)
                 fail("duplicate object key");
             whitespace();
             const char delimiter = take();
@@ -299,6 +387,8 @@ SafeTensorFile SafeTensorFile::load(const std::string &path) {
     struct stat status {};
     if (fstat(file.storage_->descriptor, &status) != 0 || status.st_size < 0)
         throw std::runtime_error("safetensors: cannot stat " + path);
+    if (uint64_t(status.st_size) > std::numeric_limits<size_t>::max())
+        throw std::length_error("safetensors: file exceeds address space");
     file.storage_->size = size_t(status.st_size);
     if (file.storage_->size == 0)
         throw std::runtime_error("safetensors: empty file");
@@ -324,12 +414,17 @@ SafeTensorFile SafeTensorFile::load(const std::string &path) {
     uint64_t header_length = 0;
     for (size_t byte = 0; byte < sizeof(uint64_t); byte++)
         header_length |= uint64_t(file.storage_->data[byte]) << (byte * 8);
+    // Match the upstream format's 100 MB header ceiling before building JSON.
+    if (header_length > 100000000)
+        throw std::runtime_error("safetensors: header exceeds size limit");
     const size_t header_size = checked_size(header_length, "header");
     if (header_size == 0 ||
         header_size > file.storage_->size - sizeof(uint64_t))
         throw std::runtime_error("safetensors: truncated header");
     file.data_offset_ = sizeof(uint64_t) + header_size;
 
+    if (file.storage_->data[8] != '{')
+        throw std::runtime_error("safetensors: header must start with '{'");
     const Json root =
         JsonParser(reinterpret_cast<const char *>(file.storage_->data + 8),
                    header_size).parse();
@@ -378,6 +473,21 @@ SafeTensorFile SafeTensorFile::load(const std::string &path) {
     }
     if (file.tensors_.empty())
         throw std::runtime_error("safetensors: no tensors");
+    // Bounds alone permit aliasing and unindexed payload. Physical order is
+    // independent of JSON key order; sorting avoids a quadratic pairwise scan.
+    std::vector<std::pair<size_t, size_t>> extents;
+    extents.reserve(file.tensors_.size());
+    for (const auto &entry : file.tensors_)
+        extents.emplace_back(entry.second.begin, entry.second.end);
+    std::sort(extents.begin(), extents.end());
+    size_t end = 0;
+    for (const auto &extent : extents) {
+        if (extent.first != end)
+            throw std::runtime_error("safetensors: overlapping or gapped tensors");
+        end = extent.second;
+    }
+    if (end != file.storage_->size - file.data_offset_)
+        throw std::runtime_error("safetensors: unindexed trailing payload");
     return file;
 }
 
@@ -449,6 +559,35 @@ ModelWeights load_model(const std::string &path) {
         parse_decimal(file.metadata("nutllm.max_seq"), "max_seq"),
         parse_decimal(file.metadata("nutllm.eos_token"), "eos_token")};
     config.validate();
+    // Check every shape before metadata triggers model-sized allocations.
+    // The descriptor count also bounds the layer loop itself.
+    if (file.tensor_count() < 3 ||
+        config.layers > (file.tensor_count() - 3) / 9)
+        throw std::runtime_error("model: missing layer tensors");
+    const auto require_shape = [&file](const std::string &name,
+                                       std::vector<size_t> expected) {
+        if (file.tensor(name).shape != expected)
+            throw std::runtime_error("model: wrong shape for " + name);
+    };
+    require_shape("model.embed_tokens.weight", {config.vocab_size, config.dim});
+    require_shape("lm_head.weight", {config.vocab_size, config.dim});
+    require_shape("model.norm.weight", {config.dim});
+    for (size_t layer = 0; layer < config.layers; layer++) {
+        for (const char *suffix : {".self_attn.q_proj.weight",
+                                   ".self_attn.o_proj.weight"})
+            require_shape(layer_name(layer, suffix), {config.dim, config.dim});
+        for (const char *suffix : {".self_attn.k_proj.weight",
+                                   ".self_attn.v_proj.weight"})
+            require_shape(layer_name(layer, suffix), {config.kv_dim(), config.dim});
+        for (const char *suffix : {".mlp.gate_proj.weight",
+                                   ".mlp.up_proj.weight"})
+            require_shape(layer_name(layer, suffix), {config.ffn_dim, config.dim});
+        require_shape(layer_name(layer, ".mlp.down_proj.weight"),
+                      {config.dim, config.ffn_dim});
+        for (const char *suffix : {".input_layernorm.weight",
+                                   ".post_attention_layernorm.weight"})
+            require_shape(layer_name(layer, suffix), {config.dim});
+    }
     ModelWeights model(config);
 
     copy_matrix(file.tensor("model.embed_tokens.weight"), model.embeddings,

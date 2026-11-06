@@ -413,42 +413,52 @@ QuantizedModelWeights load_llama2c_quantized_model(
 
 Llama2Tokenizer Llama2Tokenizer::load(const std::string &path,
                                       size_t vocab_size) {
-    if (vocab_size == 0 ||
+    if (vocab_size < 3 ||
         vocab_size > size_t(std::numeric_limits<int>::max()))
         throw std::invalid_argument("llama2 tokenizer: invalid vocabulary");
-    std::ifstream input(path, std::ios::binary);
-    if (!input)
-        throw std::runtime_error("llama2 tokenizer: cannot open " + path);
-    uint32_t maximum_length = 0;
-    input.read(reinterpret_cast<char *>(&maximum_length),
-               sizeof(maximum_length));
-    if (!input || maximum_length == 0)
+    const ReadOnlyFile file(path);
+    if (file.size() < sizeof(uint32_t))
         throw std::runtime_error("llama2 tokenizer: invalid header");
+    uint32_t maximum_length = 0;
+    std::memcpy(&maximum_length, file.data(), sizeof(maximum_length));
+    if (maximum_length == 0)
+        throw std::runtime_error("llama2 tokenizer: invalid header");
+    size_t offset = sizeof(maximum_length);
+    // Each record needs a score, a length and at least one token byte. Check
+    // the actual file before reserve(), not an attacker-controlled count.
+    constexpr size_t record_header = sizeof(float) + sizeof(int32_t);
+    if (vocab_size > (file.size() - offset) / (record_header + 1))
+        throw std::runtime_error("llama2 tokenizer: truncated vocabulary");
 
     Llama2Tokenizer tokenizer;
     tokenizer.max_token_length_ = maximum_length;
     tokenizer.vocabulary_.reserve(vocab_size);
     tokenizer.scores_.reserve(vocab_size);
     for (size_t id = 0; id < vocab_size; id++) {
+        if (file.size() - offset < record_header)
+            throw std::runtime_error("llama2 tokenizer: truncated entry");
         float score = 0.0f;
         int32_t length = 0;
-        input.read(reinterpret_cast<char *>(&score), sizeof(score));
-        input.read(reinterpret_cast<char *>(&length), sizeof(length));
-        if (!input || !std::isfinite(score) || length <= 0 ||
+        std::memcpy(&score, file.data() + offset, sizeof(score));
+        offset += sizeof(score);
+        std::memcpy(&length, file.data() + offset, sizeof(length));
+        offset += sizeof(length);
+        if (!std::isfinite(score) || length <= 0 ||
             size_t(length) > tokenizer.max_token_length_)
             throw std::runtime_error(
                 "llama2 tokenizer: malformed vocabulary entry");
-        std::string token(size_t(length), '\0');
-        input.read(token.data(), length);
-        if (!input)
+        if (size_t(length) > file.size() - offset)
             throw std::runtime_error("llama2 tokenizer: truncated token");
+        std::string token(reinterpret_cast<const char *>(file.data() + offset),
+                          size_t(length));
+        offset += size_t(length);
+        if (!tokenizer.token_to_id_.emplace(token, int(id)).second)
+            throw std::runtime_error("llama2 tokenizer: duplicate token");
         tokenizer.scores_.push_back(score);
         tokenizer.vocabulary_.push_back(std::move(token));
     }
-    if (input.peek() != std::char_traits<char>::eof())
+    if (offset != file.size())
         throw std::runtime_error("llama2 tokenizer: trailing data");
-    for (size_t id = 0; id < tokenizer.vocabulary_.size(); id++)
-        tokenizer.token_to_id_.emplace(tokenizer.vocabulary_[id], int(id));
     return tokenizer;
 }
 

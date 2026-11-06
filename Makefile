@@ -8,15 +8,22 @@
 
 CXX   := g++
 ARCH  ?= -march=native
-CXXFLAGS := -std=c++17 -O3 -Wall -Wextra -Werror -pthread $(ARCH) -Iinclude
+SANITIZE ?= 0
+ifeq ($(SANITIZE),1)
+OPTFLAGS := -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all
+else
+OPTFLAGS := -O3
+endif
+CXXFLAGS := -std=c++17 $(OPTFLAGS) -Wall -Wextra -Werror -pthread $(ARCH) -Iinclude
 
-BUILD := build
+BUILD ?= build
 BIN   := $(BUILD)/nutllm
 
 SRC := $(wildcard src/*.cpp)
 OBJ := $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRC))
+DEP := $(OBJ:.o=.d)
 
-.PHONY: all run test bench clean
+.PHONY: all run test bench sanitize clean
 
 all: $(BIN)
 
@@ -24,7 +31,7 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 $(BUILD)/%.o: src/%.cpp | $(BUILD)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(BIN): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ)
@@ -34,15 +41,22 @@ run: $(BIN)
 
 # Correctness gate: exits non-zero if any kernel disagrees with the reference.
 test: $(BIN)
-	@$(BIN) 128 > $(BUILD)/test.out 2>&1; \
+	@mkdir -p build # Shared scratch directory for generated test fixtures.
+	@$(BIN) --test > $(BUILD)/test.out 2>&1; \
 	  status=$$?; \
 	  cat $(BUILD)/test.out; \
 	  if [ $$status -ne 0 ]; then echo "FAILED"; exit 1; fi; \
 	  grep -q FAIL $(BUILD)/test.out && { echo "FAILED"; exit 1; }; \
 	  echo "all kernels agree with the reference"
 
+# Keep sanitizer objects separate from optimized builds; use scalar fallbacks.
+sanitize:
+	$(MAKE) BUILD=build/sanitize ARCH="" SANITIZE=1 test
+
 bench: $(BIN)
 	@$(BIN) 1024
 
 clean:
 	rm -rf $(BUILD)
+
+-include $(DEP)
