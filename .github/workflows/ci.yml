@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Only the latest commit on each branch or pull request needs a full run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: ${{ matrix.name }}
