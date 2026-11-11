@@ -111,6 +111,14 @@ The tokenizer begins from raw bytes, so decoding is lossless for arbitrary
 UTF-8. Vocabulary and merge files use hex-encoded byte strings, which also
 represents whitespace and NUL unambiguously.
 
+For BPE, merge rules are indexed with transparent string keys. Adjacent
+symbol lookups use non-owning `std::string_view` references instead of
+allocating/copying temporary string pairs, while preserving the exact merge
+priority and left-to-right tie break. Decoding validates all IDs, reserves the
+complete byte length once, and then appends token bytes. Vocabulary loading
+rejects extra columns after each id and encoded token. These changes preserve
+token IDs, binary-safe text, and the public tokenizer API.
+
 ## Implemented tensor-op contract
 
 `include/ops.hpp` exposes the permanent reference and optimised paths for

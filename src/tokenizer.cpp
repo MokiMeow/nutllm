@@ -9,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 
 #include "tokenizer.hpp"
 
@@ -54,8 +55,10 @@ Tokenizer::Tokenizer(
             throw std::invalid_argument("tokenizer: empty or duplicate token");
     }
     for (size_t rank = 0; rank < merges.size(); rank++) {
-        if (merges[rank].first.empty() || merges[rank].second.empty() ||
-            !merge_rank_.emplace(merges[rank], rank).second)
+        if (merges[rank].first.empty() || merges[rank].second.empty())
+            throw std::invalid_argument("tokenizer: invalid duplicate merge");
+        auto &successors = merge_rank_[merges[rank].first];
+        if (!successors.emplace(merges[rank].second, rank).second)
             throw std::invalid_argument("tokenizer: invalid duplicate merge");
         if (token_to_id_.count(merges[rank].first +
                                merges[rank].second) == 0)
@@ -76,9 +79,11 @@ Tokenizer Tokenizer::load(const std::string &vocabulary_path,
         std::istringstream stream(line);
         size_t id = 0;
         std::string encoded;
-        if (!(stream >> id >> encoded) || id != expected_id)
+        std::string trailing;
+        if (!(stream >> id >> encoded) || (stream >> trailing) ||
+            id != expected_id)
             throw std::runtime_error(
-                "tokenizer: vocabulary ids must be contiguous");
+                "tokenizer: vocabulary must have contiguous ids and one token");
         vocabulary.push_back(decode_hex(encoded));
         expected_id++;
     }
@@ -115,10 +120,14 @@ std::vector<int> Tokenizer::encode(const std::string &text) const {
         size_t best_position = symbols.size();
         size_t best_rank = std::numeric_limits<size_t>::max();
         for (size_t index = 0; index + 1 < symbols.size(); index++) {
-            const auto found =
-                merge_rank_.find({symbols[index], symbols[index + 1]});
-            if (found != merge_rank_.end() && found->second < best_rank) {
-                best_rank = found->second;
+            const auto left =
+                merge_rank_.find(std::string_view(symbols[index]));
+            if (left == merge_rank_.end())
+                continue;
+            const auto right =
+                left->second.find(std::string_view(symbols[index + 1]));
+            if (right != left->second.end() && right->second < best_rank) {
+                best_rank = right->second;
                 best_position = index;
             }
         }
@@ -155,10 +164,18 @@ std::vector<int> Tokenizer::encode(const std::string &text) const {
 
 std::string Tokenizer::decode(const std::vector<int> &tokens) const {
     std::string text;
+    size_t output_bytes = 0;
     for (int token : tokens) {
         if (token < 0 || size_t(token) >= id_to_token_.size())
             throw std::out_of_range("tokenizer: token id out of range");
-        text += id_to_token_[size_t(token)];
+        const size_t length = id_to_token_[size_t(token)].size();
+        if (length > text.max_size() - output_bytes)
+            throw std::length_error("tokenizer: decoded text exceeds max size");
+        output_bytes += length;
     }
+
+    text.reserve(output_bytes);
+    for (int token : tokens)
+        text += id_to_token_[size_t(token)];
     return text;
 }
